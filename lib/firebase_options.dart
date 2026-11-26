@@ -50,11 +50,11 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: '',
-    appId: '',
-    messagingSenderId: '',
-    projectId: '',
-    storageBucket: '',
+    apiKey: 'AIzaSyDusqj3EJ5vN-CMr-jPW6O0kJhjAXDMwlo',
+    appId: '1:985560620150:android:f584f3c2331e1d895bd357',
+    messagingSenderId: '985560620150',
+    projectId: 'pestraksh',
+    storageBucket: 'pestraksh.firebasestorage.app',
   );
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: '',

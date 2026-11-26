@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "985560620150",
+    "project_id": "pestraksh",
+    "storage_bucket": "pestraksh.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:985560620150:android:f584f3c2331e1d895bd357",
+        "android_client_info": {
+          "package_name": "com.pestraksh.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "985560620150-da4ss6dv8f1u9ms88s8o2j2rosqfsrtt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDusqj3EJ5vN-CMr-jPW6O0kJhjAXDMwlo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "985560620150-da4ss6dv8f1u9ms88s8o2j2rosqfsrtt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:985560620150:android:53e411c2745966c65bd357",
+        "android_client_info": {
+          "package_name": "com.pestraksh.partner"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "985560620150-da4ss6dv8f1u9ms88s8o2j2rosqfsrtt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDusqj3EJ5vN-CMr-jPW6O0kJhjAXDMwlo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "985560620150-da4ss6dv8f1u9ms88s8o2j2rosqfsrtt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
