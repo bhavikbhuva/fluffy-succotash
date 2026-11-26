@@ -23,28 +23,28 @@ import 'package:google_fonts/google_fonts.dart';
 /// ────────────────────────────────────────────────────────────────────────────
 abstract final class AppConfig {
   /// Active environment — maps to `env/<environment>.json`.
-  static const String environment = 'demo';
+  static const String environment = 'prod';
 
   // ─── AUTO-SYNCED FROM env/<environment>.json — DO NOT EDIT BY HAND ────────
   // Run `dart run tool/apply_config.dart` to refresh these values.
   // ──────────────────────────────────────────────────────────────────────────
-  static const String baseUrl = 'https://admin-snapbuy.wrteam.me/customer/';
-  static const String webUrl = 'https://snapbuy.wrteam.me';
+  static const String baseUrl = 'https://admin.pestraksh.com/customer/';
+  static const String webUrl = 'https://pestraksh.com';
   static const String socketBaseUrl =
-      'wss://admin-snapbuy.wrteam.me:8080/app/w73uw1egonunwexdhebg';
+      'wss://admin.pestraksh.com/ws/chat';
 
-  /// Custom scheme deep link (e.g. `snapbuy://product/{id}`).
-  static const String deeplinkScheme = 'snapbuy';
+  /// Custom scheme deep link (e.g. `pestraksh://product/{id}`).
+  static const String deeplinkScheme = 'pestraksh';
 
   /// App Links host (must match [webUrl]'s host).
-  static const String deeplinkHost = 'snapbuy.wrteam.me';
+  static const String deeplinkHost = 'pestraksh.com';
   // ──────────────────────────────────────────────────────────────────────────
 
   // app name
-  static const String appName = 'SnapBuy';
+  static const String appName = 'PestRaksh';
 
   // package name
-  static const String appPackageName = 'app.snapbuy.customer';
+  static const String appPackageName = 'com.pestraksh.app';
 
   // Pagination
   static const int pageLimit = 10;

@@ -1,0 +1,9 @@
+{
+  "APPLICATION_ID": "com.pestraksh.app",
+  "APP_NAME": "PestRaksh",
+  "BASE_URL": "https://admin.pestraksh.com/customer/",
+  "WEB_URL": "https://pestraksh.com",
+  "SOCKET_BASE_URL": "wss://admin.pestraksh.com/ws/chat",
+  "DEEPLINK_SCHEME": "pestraksh",
+  "DEEPLINK_HOST": "pestraksh.com"
+}

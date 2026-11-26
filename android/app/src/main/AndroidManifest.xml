@@ -5,7 +5,7 @@
     <!-- Required on Android 13+ (API 33) for runtime notification permission requests. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
-        android:label="SnapBuy"
+        android:label="PestRaksh"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
         <activity
@@ -37,22 +37,21 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
 
-            <!-- Custom scheme deep link: snapbuy://product/{id} -->
-            <!-- Replace "snapbuy" with value matching deep_link_scheme from your API -->
+            <!-- Custom scheme deep link: pestraksh://product/{id} -->
+            <!-- Must match deep_link_scheme from the settings API -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="snapbuy"/>
+                <data android:scheme="pestraksh"/>
             </intent-filter>
 
-            <!-- App Links: https://e-commerce-wrteam.vercel.app/product/{id} -->
-            <!-- Replace host with your AppConstants.webUrl domain -->
+            <!-- App Links: https://pestraksh.com/product/{id} (needs assetlinks.json on the website to open the app) -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="https" android:host="snapbuy.wrteam.me" android:pathPrefix="/product"/>
+                <data android:scheme="https" android:host="pestraksh.com" android:pathPrefix="/product"/>
             </intent-filter>
         </activity>
         <activity

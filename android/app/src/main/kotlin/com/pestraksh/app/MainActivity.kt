@@ -1,4 +1,4 @@
-package app.snapbuy.customer
+package com.pestraksh.app
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine

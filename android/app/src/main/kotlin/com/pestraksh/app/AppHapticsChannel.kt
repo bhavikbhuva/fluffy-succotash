@@ -1,4 +1,4 @@
-package app.snapbuy.customer
+package com.pestraksh.app
 
 import android.content.Context
 import android.os.Build

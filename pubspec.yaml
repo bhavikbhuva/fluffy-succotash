@@ -1,5 +1,5 @@
 name: customer
-description: "Shop everything you need with SnapBuy. Discover products across multiple categories, explore deals and offers, add items to your cart, place orders securely, track deliveries in real time, manage your wishlist, and enjoy a fast and convenient shopping experience."
+description: "PestRaksh: book pest control services in Bangalore."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -17,7 +17,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
 #Product Version: 1.6.0
-version: 1.6.0+12
+version: 1.0.0+1
 
 environment:
   sdk: ^3.10.8

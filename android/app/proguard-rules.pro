@@ -4,7 +4,7 @@
 -dontwarn io.flutter.**
 
 # Flutter plugins generated registrant
--keep class app.snapbuy.customer.seller.** { *; }
+-keep class com.pestraksh.app.** { *; }
 
 # Firebase / Google
 -keep class com.google.firebase.** { *; }
@@ -46,7 +46,7 @@
 -dontwarn kotlinx.coroutines.**
 
 # Keep model classes (JSON serialization)
--keep class app.snapbuy.customer.seller.** implements java.io.Serializable { *; }
+-keep class com.pestraksh.app.** implements java.io.Serializable { *; }
 -keepclassmembers class * implements java.io.Serializable {
     static final long serialVersionUID;
     private static final java.io.ObjectStreamField[] serialPersistentFields;
