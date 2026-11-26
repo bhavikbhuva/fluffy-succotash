@@ -929,4 +929,26 @@ class LanguageLabelKeys {
   static const String mobileVerifiedSuccess = "mobile_verified_success";
   static const String verifyMobileBeforeSaving = "verify_mobile_before_saving";
   static const String verifyEmailBeforeSaving = "verify_email_before_saving";
+
+  // PestRaksh: booking date and arrival window at checkout (texts as on the
+  // website's picker; in the backend's apps/customer/en.json and here in
+  // assets/languages/en.json).
+  static const String serviceSchedule = "service_schedule";
+  static const String pickPreferredSlot = "pick_preferred_slot";
+  static const String availableTimeSlots = "available_time_slots";
+  static const String pleaseSelectBookingSlot = "please_select_booking_slot";
+  static const String noSlotsConfigured = "no_slots_configured";
+  static const String appointmentsClosedLocation =
+      "appointments_closed_location";
+  static const String noSlotsAvailableForDate = "no_slots_available_for_date";
+  static const String unableToLoadBookingSlots = "unable_to_load_booking_slots";
+  static const String windowPassed = "window_passed";
+  static const String fullyBooked = "fully_booked";
+  static const String onlySpotsLeft = "only_spots_left";
+  static const String onlyOneSpotLeft = "only_one_spot_left";
+  static const String spotsAvailable = "spots_available";
+  static const String bookingDayHoliday = "booking_day_holiday";
+  static const String bookingDayClosed = "booking_day_closed";
+  static const String bookingDayFull = "booking_day_full";
+  static const String technicianArrivesOn = "technician_arrives_on";
 }

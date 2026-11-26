@@ -25,6 +25,7 @@ import 'package:customer/features/cart/cubit/cart_recommendations_cubit.dart';
 import 'package:customer/features/cart/cubit/guest_cart_fetch_cubit.dart';
 import 'package:customer/features/cart/models/cart_model.dart';
 import 'package:customer/features/cart/models/delivery_type.dart';
+import 'package:customer/features/checkout/cubit/booking_slots_cubit.dart';
 import 'package:customer/features/checkout/cubit/delivery_type_cubit.dart';
 import 'package:customer/features/checkout/cubit/place_order_cubit.dart';
 import 'package:customer/features/checkout/models/billing_address_model.dart';
@@ -37,6 +38,7 @@ import 'package:customer/features/checkout/utils/checkout_totals.dart';
 import 'package:customer/features/checkout/utils/checkout_variant_id.dart';
 import 'package:customer/features/address/widgets/address_picker_sheet.dart';
 import 'package:customer/features/checkout/widgets/checkout_bloc_listeners.dart';
+import 'package:customer/features/checkout/widgets/checkout_booking_slot_section.dart';
 import 'package:customer/features/checkout/widgets/checkout_delivery_type_toggle.dart';
 import 'package:customer/features/checkout/widgets/checkout_guest_body.dart';
 import 'package:customer/features/checkout/widgets/checkout_loaded_body.dart';
@@ -164,6 +166,23 @@ class _CheckoutScreenState extends State<CheckoutScreen>
   final DeliveryTypeCubit _deliveryTypeCubit = DeliveryTypeCubit(
     DeliveryType.delivery,
   );
+
+  // PestRaksh: the visit date and arrival window (required by our backend),
+  // and the scroll target used when one is missing at "Place booking".
+  final BookingSlotsCubit _bookingSlotsCubit = BookingSlotsCubit();
+  final GlobalKey _bookingSlotKey = GlobalKey();
+
+  /// PestRaksh: the Service Team / Pick Up switch only when the server offers
+  /// pickup (`pickup_available`), as on the website; PestRaksh never does, so
+  /// every booking goes out as a visit (`delivery_type=delivery`).
+  bool _pickupOffered(BuildContext context) {
+    if (_isLoggedIn) {
+      final s = context.watch<CartFetchCubit>().state;
+      return s is CartFetchLoaded && s.cart.data?.pickupAvailable == 1;
+    }
+    final s = context.watch<GuestCartFetchCubit>().state;
+    return s is GuestCartLoaded && s.cart.data?.pickupAvailable == 1;
+  }
 
   /// Latest cart response's pickup info, whichever mode it was actually
   /// fetched in — the store's pickup availability doesn't depend on which
@@ -316,6 +335,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     _scrollController.dispose();
     _appBarShadowVisible.dispose();
     _deliveryTypeCubit.close();
+    _bookingSlotsCubit.close();
     _buyerTaxSpecCubit.close();
     disposeRazorpay();
     super.dispose();
@@ -612,6 +632,30 @@ class _CheckoutScreenState extends State<CheckoutScreen>
       return;
     }
 
+    // PestRaksh: a visit date and an arrival window are required (the backend
+    // refuses the booking without them); point the customer to the picker.
+    final slots = _bookingSlotsCubit.state;
+    if (!slots.isComplete) {
+      AppSnackBar.show(
+        context: context,
+        message: context.translate(
+          LanguageLabelKeys.pleaseSelectBookingSlot,
+          fallback:
+              'Please select your preferred service date and arrival window',
+        ),
+        type: SnackBarType.error,
+      );
+      if (_bookingSlotKey.currentContext != null) {
+        ensureVisibleAndFlash(
+          context,
+          _bookingSlotKey,
+          alignment: 0.1,
+          color: context.cs.primary,
+        );
+      }
+      return;
+    }
+
     // Buyer tax: only sent while the billed country collects one (section
     // visible). Re-checked here because the billed party — and so its
     // pattern — may have changed after the number was typed. Empty is
@@ -717,6 +761,8 @@ class _CheckoutScreenState extends State<CheckoutScreen>
       deliveryType: _deliveryTypeCubit.state,
       latitude: isPickup ? null : _addressLat,
       longitude: isPickup ? null : _addressLng,
+      bookingDate: slots.selectedDate,
+      bookingSlotId: slots.selectedSlotId,
     );
   }
 
@@ -839,8 +885,19 @@ class _CheckoutScreenState extends State<CheckoutScreen>
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<PaymentCubit, PaymentState>(
-      listener: _onPaymentStateChanged,
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<PaymentCubit, PaymentState>(
+          listener: _onPaymentStateChanged,
+        ),
+        // PestRaksh: a refused booking may mean the window was just taken:
+        // fetch the windows again (the choice stays while it is still open).
+        BlocListener<PlaceOrderCubit, PlaceOrderState>(
+          listener: (context, state) {
+            if (state is PlaceOrderError) _bookingSlotsCubit.reload();
+          },
+        ),
+      ],
       child: AppScaffold(
         applyBottomInset: false,
         appBar: CustomAppBar(
@@ -848,16 +905,17 @@ class _CheckoutScreenState extends State<CheckoutScreen>
           showBackButton: true,
           shadowListenable: _appBarShadowVisible,
           actions: [
-            Padding(
-              padding: const EdgeInsetsDirectional.only(end: 16),
-              child: BlocBuilder<DeliveryTypeCubit, DeliveryType>(
-                bloc: _deliveryTypeCubit,
-                builder: (context, type) => CheckoutDeliveryTypeToggle(
-                  type: type,
-                  onChanged: _onDeliveryTypeChanged,
+            if (_pickupOffered(context))
+              Padding(
+                padding: const EdgeInsetsDirectional.only(end: 16),
+                child: BlocBuilder<DeliveryTypeCubit, DeliveryType>(
+                  bloc: _deliveryTypeCubit,
+                  builder: (context, type) => CheckoutDeliveryTypeToggle(
+                    type: type,
+                    onChanged: _onDeliveryTypeChanged,
+                  ),
                 ),
               ),
-            ),
           ],
         ),
         body: CheckoutBlocListeners(
@@ -922,6 +980,13 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         onBrowseCodes: _browseCodes,
         onWalletToggle: (val) => setState(() => _useWallet = val),
         onNoteChanged: (note) => setState(() => _orderNote = note),
+        bookingSlotSection: KeyedSubtree(
+          key: _bookingSlotKey,
+          child: CheckoutBookingSlotSection(
+            cubit: _bookingSlotsCubit,
+            branchId: cartData.pickup?.branchId ?? 0,
+          ),
+        ),
         // Rebuilds when the billed country's spec loads; hidden (nothing
         // sent) for a country with buyer_tax_field.enabled = 0.
         buyerTaxSection: BlocBuilder<BuyerTaxFieldCubit, BuyerTaxField?>(

@@ -70,6 +70,9 @@ class PlaceOrderCubit extends Cubit<PlaceOrderState> {
     DeliveryType? deliveryType,
     String? latitude,
     String? longitude,
+    // PestRaksh: visit date and arrival window.
+    String? bookingDate,
+    int? bookingSlotId,
   }) async {
     emit(PlaceOrderLoading());
     try {
@@ -98,6 +101,8 @@ class PlaceOrderCubit extends Cubit<PlaceOrderState> {
         deliveryType: deliveryType,
         latitude: latitude,
         longitude: longitude,
+        bookingDate: bookingDate,
+        bookingSlotId: bookingSlotId,
       );
 
       final responseStatus = map['status']?.toString() ?? '0';

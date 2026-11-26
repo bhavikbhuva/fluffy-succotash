@@ -44,6 +44,10 @@ class CheckoutRepository {
     // fixed point, not the customer's location.
     String? latitude,
     String? longitude,
+    // PestRaksh: the booking's visit date ("YYYY-MM-DD") and arrival window,
+    // required by our backend (see BookingSlotsCubit).
+    String? bookingDate,
+    int? bookingSlotId,
   }) async {
     try {
       final data = <String, dynamic>{
@@ -64,6 +68,10 @@ class CheckoutRepository {
           ApiParameters.walletBalance: walletBalance,
         if (orderNote != null && orderNote.isNotEmpty)
           ApiParameters.orderNote: orderNote,
+        if (bookingDate != null && bookingDate.isNotEmpty)
+          ApiParameters.bookingDate: bookingDate,
+        if (bookingSlotId != null)
+          ApiParameters.bookingSlotId: bookingSlotId.toString(),
         // Sent as typed (server uppercases + strips spaces, then validates
         // against the billed country and refuses BEFORE writing anything, so
         // a bad number never leaves a stray order). Omitted when empty: a

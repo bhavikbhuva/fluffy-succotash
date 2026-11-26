@@ -76,6 +76,9 @@ class ApiEndpoints {
   static const String addressUpdate = "$address/update";
   static const String addressRemove = "$address/delete";
   static const String placeOrder = "place_order";
+
+  // PestRaksh: booking dates and arrival windows for checkout (public).
+  static const String availableSlots = "available_slots";
   static const String initiateTransaction = "initiate_transaction";
   static const String addTransaction = "add_transaction";
   static const String deleteAccount = "delete_account";

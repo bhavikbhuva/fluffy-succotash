@@ -54,6 +54,7 @@ class CheckoutLoadedBody extends StatelessWidget {
     required this.onBrowseCodes,
     required this.onWalletToggle,
     required this.onNoteChanged,
+    this.bookingSlotSection,
     this.buyerTaxSection,
     required this.onPlaceOrder,
     required this.onChooseAddress,
@@ -90,6 +91,10 @@ class CheckoutLoadedBody extends StatelessWidget {
   final ValueChanged<String> onBrowseCodes;
   final ValueChanged<bool> onWalletToggle;
   final ValueChanged<String> onNoteChanged;
+
+  /// PestRaksh: the visit date and arrival window picker, built by the screen
+  /// (it owns the selection, which place_order sends).
+  final Widget? bookingSlotSection;
 
   /// "Business details" — buyer tax number for the billed party,
   /// shown beside the order note (it's typed per order, like the note).
@@ -243,6 +248,10 @@ class CheckoutLoadedBody extends StatelessWidget {
                             if (notDeliverable)
                               const SizedBox.shrink()
                             else ...[
+                              if (bookingSlotSection != null) ...[
+                                bookingSlotSection!,
+                                AppSpacing.h12,
+                              ],
                               CheckoutRecommendationsSection(
                                 key: recommendationsKey,
                               ),

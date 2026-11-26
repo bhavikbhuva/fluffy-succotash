@@ -838,5 +838,22 @@
   "enter_code_sent_to": "Enter the code sent to {target}",
   "mobile_verified_success": "Mobile number verified",
   "verify_mobile_before_saving": "Please verify your new mobile number before updating your profile",
-  "verify_email_before_saving": "Please verify your new email before updating your profile"
+  "verify_email_before_saving": "Please verify your new email before updating your profile",
+  "service_schedule": "Service Schedule & Time Slot",
+  "pick_preferred_slot": "Choose your preferred visit date and technician arrival window",
+  "available_time_slots": "Available Arrival Windows for",
+  "please_select_booking_slot": "Please select your preferred service date and arrival window",
+  "no_slots_configured": "No Service Appointments Available",
+  "appointments_closed_location": "Bookings are not open for this location right now. Please contact us.",
+  "no_slots_available_for_date": "No available service slots for this date. Please select another date above.",
+  "unable_to_load_booking_slots": "Could not load the arrival windows. Please try again.",
+  "window_passed": "Window passed",
+  "fully_booked": "Fully booked",
+  "only_spots_left": "Only {count} spots left",
+  "only_one_spot_left": "Only 1 spot left",
+  "spots_available": "{count} spots available",
+  "booking_day_holiday": "Holiday",
+  "booking_day_closed": "Closed",
+  "booking_day_full": "Full",
+  "technician_arrives_on": "Your technician will arrive on {date} between {window}."
 }

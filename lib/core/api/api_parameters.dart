@@ -204,6 +204,12 @@ class ApiParameters {
   static const String walletUsed = 'wallet_used';
   static const String walletBalance = 'wallet_balance';
   static const String orderNote = 'order_note';
+
+  // PestRaksh: booking date and arrival window (place_order, available_slots).
+  static const String bookingDate = 'booking_date';
+  static const String bookingSlotId = 'booking_slot_id';
+  static const String branchId = 'branch_id';
+  static const String days = 'days';
   static const String promoCodeId = 'promocode_id';
   static const String billingSameAsShipping = 'billing_same_as_shipping';
   static const String billingName = 'billing_name';
