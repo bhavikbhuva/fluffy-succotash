@@ -1,3 +1,4 @@
+import 'package:customer/core/theme/app_colors.dart';
 import 'package:customer/commons/cubit/connectivity_cubit.dart';
 import 'package:customer/core/constants/navigation_service.dart';
 import 'package:customer/commons/models/app_settings_model.dart';
@@ -121,7 +122,10 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      backgroundColor: context.cs.primary,
+      // PestRaksh: light behind the logo (was the primary colour, the vendor green).
+      backgroundColor: context.isDark
+          ? AppColors.backgroundDark
+          : AppColors.splashBackgroundLight,
       body: MultiBlocListener(
         listeners: [
           BlocListener<SettingsCubit, SettingsState>(

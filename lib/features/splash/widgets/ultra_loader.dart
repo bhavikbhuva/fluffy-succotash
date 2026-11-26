@@ -42,7 +42,8 @@ class _UltraLoaderState extends State<UltraLoader>
           return Transform.rotate(
             angle: _controller.value * 2 * pi,
             child: CustomPaint(
-              painter: UltraPainter(color: context.cs.onPrimary),
+              // PestRaksh: the splash is light now, so the loader takes the brand colour (was onPrimary).
+              painter: UltraPainter(color: context.cs.primary),
             ),
           );
         },

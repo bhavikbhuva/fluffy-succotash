@@ -9,11 +9,16 @@ final class AppColors {
 
   static const Color lightGray = Color(0xFFE5E7EB);
 
-  // Primary color palette
-  static const Color primary = Color(0xFF0E9623);
-  static const Color primaryDark = Color(0xFF0E9623);
-  static const Color primaryLight = Color(0xFF0E9623);
-  static const Color primaryContainer = Color(0xFFE8F5E9);
+  // Primary palette: PestRaksh orange (the website's light-mode colour), used until the
+  // server's App Settings colour loads. svgPrimaryPlaceholder above stays green: it is the
+  // colour inside the SVG files that the mapper swaps, not a colour shown as is.
+  static const Color primary = Color(0xFFFB5B00);
+  static const Color primaryDark = Color(0xFFFB5B00);
+  static const Color primaryLight = Color(0xFFFB5B00);
+  static const Color primaryContainer = Color(0xFFFFF1E8);
+
+  // Splash: a very light warm white, so the navy and orange logo stands out.
+  static const Color splashBackgroundLight = Color(0xFFFFFAF5);
 
   // Backgrounds
   static const Color backgroundLight = Color(0xFFF5F6FA);
