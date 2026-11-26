@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:customer/core/localization/repositories/language_repository.dart';
 import 'package:customer/core/api/api_exception.dart';
 import 'package:customer/core/local_storage/settings_hive_box.dart';
@@ -43,10 +45,14 @@ class LocalizationCubit extends Cubit<LocalizationState> {
     final cachedId = SettingsHiveBox.instance.translationsLangId;
     final cachedData = SettingsHiveBox.instance.translationsJson;
 
-    // 1. Hive cache hit — skip network
+    // 1. Hive cache hit — show it at once
     if (cachedId == languageId && cachedData != null) {
       LocalizationService.instance.load(cachedData);
       emit(LocalizationLoaded(languageId));
+      // PestRaksh: then fetch the server's texts in the background. The vendor
+      // skipped the network here for good, so a text changed on the server
+      // reached only new installs or a cleared app.
+      unawaited(_refreshInBackground(languageId));
       return;
     }
 
@@ -66,6 +72,27 @@ class LocalizationCubit extends Cubit<LocalizationState> {
       await _applyFallback(e.message, cachedData, cachedId);
     } catch (e) {
       await _applyFallback(e.toString(), cachedData, cachedId);
+    }
+  }
+
+  /// PestRaksh: refreshes the cached texts of [languageId] from the server and
+  /// shows them at once (LocalizationService rebuilds every screen). Offline or
+  /// on a server error the cached copy simply stays.
+  Future<void> _refreshInBackground(String languageId) async {
+    try {
+      final lang = await _repo.fetchLanguageById(languageId);
+      final data = lang.jsonData;
+      if (data == null || data.isEmpty) return;
+      // The customer may have picked another language meanwhile: don't put
+      // this one back over it.
+      if (SettingsHiveBox.instance.translationsLangId != languageId) return;
+      await SettingsHiveBox.instance.saveTranslations(
+        languageId: languageId,
+        data: data,
+      );
+      LocalizationService.instance.load(data);
+    } catch (_) {
+      // Keep the cached copy.
     }
   }
 
