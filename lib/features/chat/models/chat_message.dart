@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:customer/utils/server_time.dart';
+
 enum ChatType { deliveryBoyChat, adminChat }
 
 enum MessageStatus { sending, sent, failed }
@@ -157,29 +159,10 @@ class ChatMessage {
     );
   }
 
-  static final RegExp _kTzSuffix = RegExp(r'(Z|[+-]\d{2}:?\d{2})$');
-
   /// Socket/rest timestamps arrive as wall-clock strings with no timezone
-  /// marker (e.g. "2026-01-15 10:30:00"), which is the server's UTC time —
-  /// Dart parses that as if it were already local, so it must be
-  /// reinterpreted as UTC before converting, otherwise it never shifts to
-  /// device time.
-  static DateTime? _parseServerTimestamp(String raw) {
-    final trimmed = raw.trim();
-    if (trimmed.isEmpty) return null;
-    final parsed = DateTime.tryParse(trimmed);
-    if (parsed == null) return null;
-    if (_kTzSuffix.hasMatch(trimmed)) return parsed.toLocal();
-    return DateTime.utc(
-      parsed.year,
-      parsed.month,
-      parsed.day,
-      parsed.hour,
-      parsed.minute,
-      parsed.second,
-      parsed.millisecond,
-    ).toLocal();
-  }
+  /// marker (e.g. "2026-01-15 10:30:00"). PestRaksh: that is India time, the
+  /// server's zone (was read as server UTC); see [parseServerTime].
+  static DateTime? _parseServerTimestamp(String raw) => parseServerTime(raw);
 
   Map<String, dynamic> toJson() => {
     'id': id,

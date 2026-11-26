@@ -1,3 +1,5 @@
+import 'package:customer/utils/server_time.dart';
+
 class ChatConversation {
   final String id;
   final String type;
@@ -37,9 +39,9 @@ class ChatConversation {
       title: json['title']?.toString() ?? '',
       lastMessage: json['last_message']?.toString(),
       lastSenderType: json['last_sender_type']?.toString(),
-      lastMessageAt: json['last_message_at'] != null
-          ? DateTime.tryParse(json['last_message_at'].toString())
-          : null,
+      // PestRaksh: India time, like every plain api time (was parsed as the
+      // phone's own zone).
+      lastMessageAt: parseServerTime(json['last_message_at']?.toString()),
       lastTime: json['last_time']?.toString(),
       unreadCount: int.tryParse(json['unread_count']?.toString() ?? '') ?? 0,
     );

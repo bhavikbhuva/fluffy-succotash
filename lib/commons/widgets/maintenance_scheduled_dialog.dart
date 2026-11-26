@@ -10,6 +10,7 @@ import 'package:customer/core/localization/language_label_key.dart';
 import 'package:customer/core/theme/app_decorations.dart';
 import 'package:customer/core/theme/app_radius.dart';
 import 'package:customer/utils/app_date_formatter.dart';
+import 'package:customer/utils/server_time.dart';
 import 'package:customer/utils/extensions/context_extensions.dart';
 import 'package:customer/utils/extensions/localization_extensions.dart';
 import 'package:customer/core/theme/app_spacing.dart';
@@ -38,26 +39,10 @@ class MaintenanceScheduledDialog extends StatefulWidget {
 
   static bool _shownThisSession = false;
 
-  /// Api sends wall-clock strings with no timezone marker, which is the
-  /// server's UTC time — reinterpret as UTC before comparing/displaying,
-  /// same convention as [AppDateFormatter].
-  static DateTime? _parseApiUtc(String? raw) {
-    if (raw == null || raw.trim().isEmpty) return null;
-    final parsed = DateTime.tryParse(raw.trim());
-    if (parsed == null) return null;
-    if (RegExp(r'(Z|[+-]\d{2}:?\d{2})$').hasMatch(raw.trim())) {
-      return parsed.toUtc();
-    }
-    return DateTime.utc(
-      parsed.year,
-      parsed.month,
-      parsed.day,
-      parsed.hour,
-      parsed.minute,
-      parsed.second,
-      parsed.millisecond,
-    );
-  }
+  /// PestRaksh: the maintenance window is typed in India time, the server's
+  /// zone (was read as server UTC); see [parseServerTime]. Returned in UTC for
+  /// comparing.
+  static DateTime? _parseApiUtc(String? raw) => parseServerTime(raw)?.toUtc();
 
   /// Returns true if the dialog was shown.
   static bool maybeShow(BuildContext context, {AppSettingsData? settings}) {

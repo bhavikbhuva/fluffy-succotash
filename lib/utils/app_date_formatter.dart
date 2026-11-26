@@ -1,4 +1,5 @@
 import 'package:customer/core/local_storage/settings_hive_box.dart';
+import 'package:customer/utils/server_time.dart';
 import 'package:intl/intl.dart';
 
 /// PHP-style date/time token -> intl [DateFormat] pattern.
@@ -49,36 +50,18 @@ String _phpFormatToIntlPattern(String phpFormat) {
 class AppDateFormatter {
   AppDateFormatter._();
 
-  /// Matches a trailing timezone designator: "Z" or "+05:30" / "-0530".
-  static final RegExp _kTzSuffix = RegExp(r'(Z|[+-]\d{2}:?\d{2})$');
-
-  /// Parses an api date/time value (string or [DateTime]) to local time,
-  /// reinterpreting timezone-less wall-clock strings as server UTC. Returns
-  /// null if [input] can't be parsed.
+  /// Parses an api date/time value (string or [DateTime]) to local time.
+  /// PestRaksh: timezone-less wall-clock strings are India time, the server's
+  /// zone (was: server UTC); see [parseServerTime]. Returns null if [input]
+  /// can't be parsed.
   static DateTime? parse(dynamic input) => _parse(input);
 
   static DateTime? _parse(dynamic input) {
     if (input == null) return null;
     if (input is DateTime) return input.isUtc ? input.toLocal() : input;
     if (input is String) {
-      final raw = input.trim();
-      if (raw.isEmpty || raw == 'null') return null;
-      final parsed = DateTime.tryParse(raw);
-      if (parsed == null) return null;
-      if (_kTzSuffix.hasMatch(raw)) return parsed.toLocal();
-      // Api sends wall-clock strings with no timezone marker (e.g.
-      // "2026-01-15 10:30:00"), which is the server's UTC time — Dart
-      // parses that as if it were already local, so it must be reinterpreted
-      // as UTC before converting, otherwise it never shifts to device time.
-      return DateTime.utc(
-        parsed.year,
-        parsed.month,
-        parsed.day,
-        parsed.hour,
-        parsed.minute,
-        parsed.second,
-        parsed.millisecond,
-      ).toLocal();
+      // PestRaksh: plain api times are India time (utils/server_time.dart).
+      return parseServerTime(input);
     }
     return null;
   }
