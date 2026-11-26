@@ -70,6 +70,10 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="high_importance_channel" />
+        <!-- PestRaksh: white silhouette for pushes shown by Android itself (the colour icon showed as a white square) -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
         <!-- Facebook App Events: values live in res/values/strings.xml -->
         <meta-data
             android:name="com.facebook.sdk.ApplicationId"

@@ -15,7 +15,6 @@ import 'package:customer/utils/extensions/context_extensions.dart';
 import 'package:customer/utils/extensions/size_extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:customer/commons/widgets/app_svg_icon.dart';
 import 'package:customer/commons/widgets/app_scaffold.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -184,9 +183,9 @@ class _SplashScreenState extends State<SplashScreen>
               children: [
                 Align(
                   alignment: Alignment.center,
-                  child: AppSvgIcon(
-                    AssetsConstants.splashLogo,
-                    size: context.screenWidth * 0.40,
+                  child: SizedBox(
+                    width: context.screenWidth * 0.62,
+                    child: const _PestRakshLogo(),
                   ),
                 ),
                 Align(
@@ -202,6 +201,25 @@ class _SplashScreenState extends State<SplashScreen>
           },
         ),
       ),
+    );
+  }
+}
+
+/// PestRaksh: the logo; on a white card in dark mode so its navy text stays readable.
+class _PestRakshLogo extends StatelessWidget {
+  const _PestRakshLogo();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final image = Image.asset(AssetsConstants.pestrakshLogo, fit: BoxFit.contain);
+    if (!isDark) return image;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Padding(padding: const EdgeInsets.all(16), child: image),
     );
   }
 }

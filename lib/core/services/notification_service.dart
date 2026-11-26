@@ -155,7 +155,7 @@ class NotificationService {
   }
 
   Future<void> _setupLocalNotifications() async {
-    const androidInit = AndroidInitializationSettings('@mipmap/launcher_icon');
+    const androidInit = AndroidInitializationSettings('@drawable/ic_notification');
     const iosInit = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
@@ -300,7 +300,7 @@ class NotificationService {
       channelDescription: _androidChannel.description,
       importance: Importance.high,
       priority: Priority.high,
-      icon: '@mipmap/launcher_icon',
+      icon: '@drawable/ic_notification',
       styleInformation: bigPicturePath != null
           ? BigPictureStyleInformation(
               FilePathAndroidBitmap(bigPicturePath),

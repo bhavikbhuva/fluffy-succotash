@@ -5,6 +5,8 @@ class AssetsConstants {
   static const String pathPng = 'assets/images/png';
   static const String logo = '$path/logo';
   static const String splashLogo = '$logo/splase_logo.svg';
+  /// PestRaksh logo (wide, transparent) for the splash screen.
+  static const String pestrakshLogo = '$pathPng/pestraksh_logo.png';
   static const String placeholder = '$logo/place_holder.svg';
   static const String googleLogo = '$path/google_logo.svg';
   static const String appleLogo = '$path/apple_logo.svg';
