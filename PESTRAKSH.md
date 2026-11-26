@@ -17,8 +17,15 @@ README is the vendor's.
 - **First APK:** 26 Nov 2026, built from `c14e219` (Flutter 3.50.1), 46 MB, signed with this repo's key
   (SHA-256 checked). The first cloud build had failed on an old payment plugin (`flutter_paystack`); fixed in
   `b191c2e`.
-- **The app can't place a booking yet.** The backend requires a booking date and time slot, and the vendor app
-  has no slot picker. That is the first job of Phase 1 in the plan. Until then: browse, log in, see bookings.
+- **Phase 1 built, 26 Nov 2026: booking works in the code.** It is in the next APK after the push; the owner's
+  test is still to do. The phase brought:
+  - India time (`lib/utils/server_time.dart`), so times are no longer 5½ hours late;
+  - the texts refresh at each start;
+  - checkout's "Service Schedule & Time Slot": the date strip and arrival windows, sent as `booking_date` and
+    `booking_slot_id`, which the backend requires;
+  - the Pick Up switch hidden.
+
+  The APK of 26 Nov (`c14e219`) can't book yet.
 - **Owner, in the admin:** Zones → Bangalore → **Quick** only, which hides the Quick / Shop switch in the app.
 - **Texts as on the website** (26 Nov 2026): Refund Policy, Privacy Policy, Book Again, Continue with Google,
   and the My Bookings tabs Upcoming / Past. They are in `assets/languages/en.json` here and in the backend's
@@ -62,14 +69,26 @@ If the signing key ever changes, add the new SHA-1 and SHA-256 in Firebase (Proj
 To build on a computer instead: Flutter stable, Java 17 and the Android SDK (compile SDK 36), then
 `flutter pub get && flutter build apk --release --split-per-abi`.
 
+**Checking code without a build:** Flutter alone is enough for `flutter analyze` and `flutter test`; no Java or
+Android SDK is needed. On 26 Nov 2026 Flutter 3.50.1 (the cloud build's version) was downloaded into a temporary
+folder for this, from `storage.googleapis.com/flutter_infra_release`.
+- Our tests are in `test/pestraksh/`.
+- `flutter analyze` on the vendor code gives about 358 notices, all of them Flutter deprecation infos; no
+  errors or warnings.
+- Vendor tests:
+  - `test/commons/cubit/base_pagination_cubit_test.dart` has one test that fails even on the untouched vendor
+    code;
+  - the full `flutter test` run does not finish (some vendor tests hang), so run folders with
+    `--timeout 60s`.
+
 ## Settings that live on the server, not in the app
 
 These change without a new app build:
 - **Texts:** `resources/lang/apps/customer/en.json` in the backend. Copy it into `assets/languages/en.json`
   here before each release; that copy is the offline fallback.
-  - The app keeps the first copy it downloads (`lib/core/localization/cubit/localization_cubit.dart`). A server
-    change reaches a phone only after a fresh install or cleared app data.
-  - This lasts until the plan's Phase 1 item "Texts refresh at each start".
+  - Since `8f11e66` the app shows its cached copy at once and fetches the server's at each start.
+  - Builds before that keep the first copy they downloaded, so a change reaches them only after a fresh install
+    or cleared app data.
 - **Colours:** Admin → Settings → App Settings (customer light and dark colour, now orange).
 - **Home page and content:** the Home Builder, banners, services, prices and policies.
 - **Map:** `map_provider` is `osm`, OpenStreetMap, so no Google Maps key is needed.
@@ -95,4 +114,8 @@ These change without a new app build:
 | `1c0b2b3` | This file and `tool/pestraksh_make_icons.py` |
 | `f1d38c2` | `CLAUDE.md`: the owner's working rules |
 | `441c87d` | `pubspec.lock` from the first good build |
-| next commit | Texts as on the website: Refund Policy, Privacy Policy, Book Again, Continue with Google, Upcoming / Past |
+| `7ad5295` | Texts as on the website: Refund Policy, Privacy Policy, Book Again, Continue with Google, Upcoming / Past |
+| `5fb719f` | India time: plain API times are India time, not UTC (Phase 1) |
+| `8f11e66` | Texts refresh at each start (Phase 1) |
+| `88d7ce3` | Booking date and arrival window at checkout; Pick Up switch only when offered; tests (Phase 1) |
+| next commit | This file: Phase 1 |
