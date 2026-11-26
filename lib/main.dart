@@ -28,13 +28,11 @@ import 'package:customer/features/orders/cubit/ongoing_order_cubit.dart';
 import 'package:customer/commons/widgets/maintenance_scheduled_dialog.dart';
 import 'package:customer/firebase_options.dart';
 import 'dart:ui';
-import 'package:facebook_app_events/facebook_app_events.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:get_it/get_it.dart';
 import 'commons/cubit/connectivity_cubit.dart';
 import 'commons/cubit/location_cubit.dart';
 import 'core/constants/navigation_service.dart';
@@ -69,13 +67,6 @@ void main() async {
     CrashlyticsService.instance.recordError(error, stack, fatal: true);
     return true;
   };
-
-  // Facebook App Events: the native SDK auto-logs standard events (app
-  // activate, install) using the App ID / Client Token configured in
-  // strings.xml + AndroidManifest.xml (Android) and Info.plist (iOS).
-  // Registering the instance here makes it available app-wide for custom
-  // event logging via GetIt.instance<FacebookAppEvents>().logEvent(...).
-  GetIt.instance.registerSingleton<FacebookAppEvents>(FacebookAppEvents());
 
   await NotificationService.instance.initialize();
 
