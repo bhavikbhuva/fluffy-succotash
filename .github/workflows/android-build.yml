@@ -166,6 +166,9 @@ jobs:
           if [ -f build.log ]; then
             grep -nE "(^|[^a-z])(error|Error|ERROR|FAILURE|Exception)" build.log | head -60 > "$OUT/errors.log" || true
             tail -n 120 build.log > "$OUT/build-tail.log"
+            # Gradle's own summary of the failure (the tail can be filled by one long list).
+            grep -n -A 30 "What went wrong" build.log | head -200 > "$OUT/what-went-wrong.log" || true
+            grep -n "PestRaksh:" build.log > "$OUT/pestraksh-notes.log" || true
           fi
           cd "$OUT"
           git init -q -b ci-status
