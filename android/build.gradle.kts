@@ -41,6 +41,28 @@ subprojects {
                     ?.invoke(android, project.group.toString())
             }
 
+            // PestRaksh: flutter_paystack (the vendor's git fork) still compiles against android-32,
+            // but the androidx libraries it now resolves need 33-34, so checkReleaseAarMetadata
+            // failed the release build (26 Nov 2026). Raise any plugin below 34 to the app's 36.
+            if (project.name != "app") {
+                val compileSdk = android.javaClass.methods
+                    .firstOrNull { it.name == "getCompileSdk" && it.parameterCount == 0 }
+                    ?.invoke(android) as? Int
+                if (compileSdk != null && compileSdk < 34) {
+                    val setter = android.javaClass.methods.firstOrNull {
+                        it.name == "setCompileSdk" && it.parameterCount == 1
+                    }
+                    if (setter != null) {
+                        setter.invoke(android, 36)
+                    } else {
+                        android.javaClass.methods
+                            .firstOrNull { it.name == "compileSdkVersion" && it.parameterCount == 1 && it.parameterTypes[0] == Int::class.javaPrimitiveType }
+                            ?.invoke(android, 36)
+                    }
+                    println("PestRaksh: ${project.name} compileSdk $compileSdk -> 36")
+                }
+            }
+
             // AGP drives javac compatibility from android.compileOptions, not the JavaCompile task.
             val compileOptions = android.javaClass.methods
                 .firstOrNull { it.name == "getCompileOptions" }?.invoke(android)
