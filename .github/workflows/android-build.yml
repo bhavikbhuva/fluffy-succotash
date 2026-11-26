@@ -1,0 +1,180 @@
+# Builds the PestRaksh customer Android app on every push to main (no Flutter needed on a Mac).
+# Same workflow as the technician app's (repo bhavikbhuva/fluffy-fishstick).
+# - Release APK (signed with our upload key) once android/app/google-services.json is in the repo;
+#   until then a DEBUG build with a stand-in Firebase file. It only proves the code compiles: the app
+#   stops at start without the real Firebase settings (lib/firebase_options.dart).
+# - The APK is published as the GitHub release "test-build" (and as a run artifact).
+# - The result is written to the `ci-status` branch (status.md + build log tail), so it can be read with git.
+name: Android build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      # The free runner starts with ~14 GB free and the Android NDK alone unpacks to ~2 GB:
+      # clear tools this build never uses (runs #2 and #4 died near the end without a report).
+      - name: Free disk space
+        run: |
+          df -h / | tail -1
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/local/share/boost \
+            /opt/hostedtoolcache/CodeQL /usr/local/share/powershell /usr/share/swift \
+            /usr/local/lib/android/sdk/ndk || true
+          sudo docker image prune --all --force >/dev/null 2>&1 || true
+          df -h / | tail -1
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      # android/gradle.properties asks for an 8 GB heap + 4 GB metaspace (fine on a laptop); the
+      # private-repo runner has ~7 GB RAM, so the job was killed mid-build (runs #2, #4, #5: no
+      # report at all). ~/.gradle/gradle.properties overrides the project file on this runner only.
+      - name: Gradle memory for the runner, plus swap
+        run: |
+          free -h
+          sudo fallocate -l 6G /mnt/swapfile && sudo chmod 600 /mnt/swapfile && sudo mkswap /mnt/swapfile >/dev/null && sudo swapon /mnt/swapfile || true
+          mkdir -p "$HOME/.gradle"
+          cat > "$HOME/.gradle/gradle.properties" <<'PROPS'
+          org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -XX:ReservedCodeCacheSize=256m -XX:-HeapDumpOnOutOfMemoryError
+          org.gradle.workers.max=2
+          org.gradle.daemon=false
+          kotlin.daemon.jvmargs=-Xmx1536m
+          PROPS
+          sed -i 's/^ *//' "$HOME/.gradle/gradle.properties"
+          cat "$HOME/.gradle/gradle.properties"
+          free -h
+
+      - name: Firebase config
+        id: firebase
+        run: |
+          if [ -f android/app/google-services.json ]; then
+            echo "real=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "real=0" >> "$GITHUB_OUTPUT"
+            # Stand-in so the debug build compiles; replaced by the real file from the Firebase console.
+            cat > android/app/google-services.json <<'JSON'
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "pestraksh-placeholder",
+              "storage_bucket": "pestraksh-placeholder.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
+                  "android_client_info": { "package_name": "com.pestraksh.app" }
+                },
+                "oauth_client": [],
+                "api_key": [ { "current_key": "AIzaSyA0000000000000000000000000000000" } ],
+                "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+              }
+            ],
+            "configuration_version": "1"
+          }
+          JSON
+          fi
+
+      - name: Build APK
+        id: build
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          if [ "${{ steps.firebase.outputs.real }}" = "1" ]; then MODE=release; else MODE=debug; fi
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          # --split-per-abi: one APK per phone type; arm64-v8a is the one for modern phones.
+          { flutter --version; flutter pub get; flutter build apk --$MODE --split-per-abi; } 2>&1 | tee build.log
+          ls -la build/app/outputs/flutter-apk/ | tee -a build.log
+
+      - name: Upload APK artifact
+        if: steps.build.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pestraksh-${{ steps.build.outputs.mode }}-apk
+          path: build/app/outputs/flutter-apk/app-*.apk
+          retention-days: 30
+
+      - name: Publish the "test-build" release
+        if: steps.build.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete test-build --yes --cleanup-tag || true
+          gh release create test-build build/app/outputs/flutter-apk/app-*.apk \
+            --prerelease --target "${{ github.sha }}" \
+            --title "PestRaksh customer app test build (${{ steps.build.outputs.mode }})" \
+            --notes "Built from ${{ github.sha }}. Install on an Android phone to test. ${{ steps.firebase.outputs.real == '1' && 'Release build with our Firebase project.' || 'Debug build with a stand-in Firebase file: it compiles but stops at start, do not install.' }}"
+
+      - name: Put the APKs on the apk branch (readable with git)
+        if: steps.build.outcome == 'success'
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          OUT=$(mktemp -d)
+          cp build/app/outputs/flutter-apk/app-*.apk "$OUT/"
+          echo "PestRaksh customer app ${{ steps.build.outputs.mode }} APKs built from ${{ github.sha }}. For a phone, install app-arm64-v8a-*.apk." > "$OUT/README.md"
+          cd "$OUT"
+          git init -q -b apk
+          git config user.name "ci"
+          git config user.email "ci@users.noreply.github.com"
+          git add -A
+          git commit -q -m "APKs for ${{ github.sha }} (${{ steps.build.outputs.mode }})"
+          git push -q -f "https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git" apk
+
+      - name: Report to the ci-status branch
+        if: always()
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          # Make room first, so the report can always be written.
+          rm -rf build/app/intermediates "$HOME/.gradle/caches/transforms-"* 2>/dev/null || true
+          OUT=$(mktemp -d)
+          {
+            echo "# Android build"
+            echo
+            echo "- commit: ${{ github.sha }}"
+            echo "- result: ${{ steps.build.outcome }}"
+            echo "- mode: ${{ steps.build.outputs.mode }}"
+            echo "- firebase file real: ${{ steps.firebase.outputs.real }}"
+            echo "- run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo "- time: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "- disk: $(df -h / | tail -1)"
+          } > "$OUT/status.md"
+          flutter --version > "$OUT/flutter-version.txt" 2>&1 || true
+          [ -f pubspec.lock ] && cp pubspec.lock "$OUT/pubspec.lock"
+          if [ -f build.log ]; then
+            grep -nE "(^|[^a-z])(error|Error|ERROR|FAILURE|Exception)" build.log | head -60 > "$OUT/errors.log" || true
+            tail -n 120 build.log > "$OUT/build-tail.log"
+          fi
+          cd "$OUT"
+          git init -q -b ci-status
+          git config user.name "ci"
+          git config user.email "ci@users.noreply.github.com"
+          git add -A
+          git commit -q -m "CI status for ${{ github.sha }}: ${{ steps.build.outcome }}"
+          git push -q -f "https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git" ci-status
+
+      - name: Fail the run if the build failed
+        if: steps.build.outcome != 'success'
+        run: exit 1
