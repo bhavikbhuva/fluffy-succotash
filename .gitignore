@@ -48,3 +48,7 @@ app.*.map.json
 #android/app/google-services.json
 #ios/Runner/GoogleService-Info.plist
 #lib/firebase_options.dart
+
+# PestRaksh: this repo is private for good (owner, 25 Nov 2026, as for the technician app),
+# so the signing key, its passwords (android/key.properties) and the Firebase config files
+# ARE kept in git.
