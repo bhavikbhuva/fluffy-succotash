@@ -20,6 +20,11 @@ README is the vendor's.
 - **The app can't place a booking yet.** The backend requires a booking date and time slot, and the vendor app
   has no slot picker. That is the first job of Phase 1 in the plan. Until then: browse, log in, see bookings.
 - **Owner, in the admin:** Zones → Bangalore → **Quick** only, which hides the Quick / Shop switch in the app.
+- **Texts as on the website** (26 Nov 2026): Refund Policy, Privacy Policy, Book Again, Continue with Google,
+  and the My Bookings tabs Upcoming / Past. They are in `assets/languages/en.json` here and in the backend's
+  file.
+- **What's next:** the rest of the work is split into Phases 1–9 in the plan (`docs/APP_PLAN.md` in the
+  backend, "The work, phase by phase"). Each phase ends with one APK and the owner's phone test.
 
 ## Everything needed is in this repo
 
@@ -62,6 +67,9 @@ To build on a computer instead: Flutter stable, Java 17 and the Android SDK (com
 These change without a new app build:
 - **Texts:** `resources/lang/apps/customer/en.json` in the backend. Copy it into `assets/languages/en.json`
   here before each release; that copy is the offline fallback.
+  - The app keeps the first copy it downloads (`lib/core/localization/cubit/localization_cubit.dart`). A server
+    change reaches a phone only after a fresh install or cleared app data.
+  - This lasts until the plan's Phase 1 item "Texts refresh at each start".
 - **Colours:** Admin → Settings → App Settings (customer light and dark colour, now orange).
 - **Home page and content:** the Home Builder, banners, services, prices and policies.
 - **Map:** `map_provider` is `osm`, OpenStreetMap, so no Google Maps key is needed.
@@ -86,4 +94,5 @@ These change without a new app build:
 | `c14e219` | The build report keeps Gradle's "What went wrong" |
 | `1c0b2b3` | This file and `tool/pestraksh_make_icons.py` |
 | `f1d38c2` | `CLAUDE.md`: the owner's working rules |
-| next commit | `pubspec.lock` from the first good build |
+| `441c87d` | `pubspec.lock` from the first good build |
+| next commit | Texts as on the website: Refund Policy, Privacy Policy, Book Again, Continue with Google, Upcoming / Past |
