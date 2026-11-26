@@ -14,8 +14,9 @@ README is the vendor's.
   - name "PestRaksh", app ID `com.pestraksh.app`, our server and website;
   - the logo, orange, a light splash, no Facebook tracking;
   - its own signing key, Firebase, the cloud build, and the booking wording built in.
-- **First APK:** the first cloud build failed on an old payment plugin (`flutter_paystack`). It was fixed in
-  `b191c2e`; the second build was running when this was written.
+- **First APK:** 26 Nov 2026, built from `c14e219` (Flutter 3.50.1), 46 MB, signed with this repo's key
+  (SHA-256 checked). The first cloud build had failed on an old payment plugin (`flutter_paystack`); fixed in
+  `b191c2e`.
 - **The app can't place a booking yet.** The backend requires a booking date and time slot, and the vendor app
   has no slot picker. That is the first job of Phase 1 in the plan. Until then: browse, log in, see bookings.
 - **Owner, in the admin:** Zones → Bangalore → **Quick** only, which hides the Quick / Shop switch in the app.
@@ -31,6 +32,7 @@ builds as is.
 | `android/app/upload-keystore.p12`, `android/key.properties` | This app's own upload signing key (PKCS12, alias `upload`, valid until 2056) and its password. SHA-1 `88:87:DB:BD:0D:DF:3E:05:1B:E2:17:5F:FA:5A:FA:E5:15:92:2B:63`, SHA-256 `2B:C4:1E:6B:E8:E8:BA:01:BC:13:97:60:E7:38:C6:90:21:77:6B:76:7B:3D:02:A9:FA:C8:B2:F0:94:5C:58:F4` |
 | `android/app/google-services.json`, `lib/firebase_options.dart` | Firebase project `pestraksh`, the website's, so logins pass the backend's check. The Firebase Android app `com.pestraksh.app` has both fingerprints above (added by the owner, 26 Nov). Android only so far |
 | `.github/workflows/android-build.yml` | The cloud build (below) |
+| `pubspec.lock` | Package versions from the first good build (Flutter 3.50.1), including the commit of the vendor's `flutter_paystack` fork |
 | `assets/logo/*`, `assets/images/png/pestraksh_logo.png` | Logo masters for the icons and the splash |
 | `tool/pestraksh_make_icons.py` | Rebuilds every icon from the logo (Python 3 with Pillow) |
 
@@ -82,4 +84,6 @@ These change without a new app build:
 | `5a21e7a` | Firebase project `pestraksh` for Android |
 | `b191c2e` | Old plugins raised to compile SDK 36 (`flutter_paystack` failed the first build) |
 | `c14e219` | The build report keeps Gradle's "What went wrong" |
-| next commit | This file and `tool/pestraksh_make_icons.py` |
+| `1c0b2b3` | This file and `tool/pestraksh_make_icons.py` |
+| `f1d38c2` | `CLAUDE.md`: the owner's working rules |
+| next commit | `pubspec.lock` from the first good build |
