@@ -1,0 +1,9 @@
+{
+  "APPLICATION_ID": "app.snapbuy.customer",
+  "APP_NAME": "SnapBuy",
+  "BASE_URL": "https://admin-snapbuy.wrteam.me/customer/",
+  "WEB_URL": "https://snapbuy.wrteam.me",
+  "SOCKET_BASE_URL": "wss://admin-snapbuy.wrteam.me:8080/app/w73uw1egonunwexdhebg",
+  "DEEPLINK_SCHEME": "snapbuy",
+  "DEEPLINK_HOST": "snapbuy.wrteam.me"
+}
