@@ -39,7 +39,8 @@ README is the vendor's.
   independently and are each reported in `ci-status`. Pushed 27 Nov (`9f861dc`).
 - **Phase 2, part 2C built, 27 Nov 2026 (not pushed):** each cart row names the booked package; Remove
   (with a confirm) instead of the − 1 + stepper; an applied promo is checked again when the subtotal
-  changes. Details in the backend's `docs/APP_PLAN.md`.
+  changes. Pushed 27 Nov (`399ded0`): its APK, with Phase 1 and all of Phase 2, is on the owner's Desktop
+  as `PestRaksh-phase2.apk`. Details in the backend's `docs/APP_PLAN.md`.
 - **Owner, in the admin:** Zones → Bangalore → **Quick** only, which hides the Quick / Shop switch in the app.
 - **Texts as on the website** (26 Nov 2026): Refund Policy, Privacy Policy, Book Again, Continue with Google,
   and the My Bookings tabs Upcoming / Past. They are in `assets/languages/en.json` here and in the backend's
