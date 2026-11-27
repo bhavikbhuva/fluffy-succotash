@@ -78,6 +78,9 @@ class HomeModeToggle extends StatelessWidget {
   final ValueChanged<int> onChanged;
   final String? quickLabel;
   final String? ecommerceLabel;
+  // PestRaksh: the inactive button's border and text colour. The vendor used
+  // white, which can't be read on the cream header; null keeps white.
+  final Color? inactiveColor;
 
   const HomeModeToggle({
     super.key,
@@ -85,6 +88,7 @@ class HomeModeToggle extends StatelessWidget {
     required this.onChanged,
     this.quickLabel,
     this.ecommerceLabel,
+    this.inactiveColor,
   });
 
   @override
@@ -93,6 +97,7 @@ class HomeModeToggle extends StatelessWidget {
       quickLabel ?? context.translate(LanguageLabelKeys.filterQuick),
       ecommerceLabel ?? context.translate(LanguageLabelKeys.filterEcommerce),
     ];
+    final inactive = inactiveColor ?? context.cs.onPrimary;
     return Row(
       children: List.generate(labels.length, (i) {
         final active = selected == i;
@@ -119,9 +124,7 @@ class HomeModeToggle extends StatelessWidget {
                     : context.cs.scrim.withValues(alpha: 0.15),
                 border: active
                     ? null
-                    : Border.all(
-                        color: context.cs.onPrimary.withValues(alpha: 0.6),
-                      ),
+                    : Border.all(color: inactive.withValues(alpha: 0.6)),
                 borderRadius: AppRadius.r14,
                 boxShadow: active
                     ? [
@@ -141,7 +144,7 @@ class HomeModeToggle extends StatelessWidget {
                 style: context.tt.bodyLarge?.copyWith(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: active ? context.cs.onSurface : context.cs.onPrimary,
+                  color: active ? context.cs.onSurface : inactive,
                 ),
                 maxLines: 1,
                 overflow: .ellipsis,
@@ -150,6 +153,51 @@ class HomeModeToggle extends StatelessWidget {
           ),
         );
       }),
+    );
+  }
+}
+
+// PestRaksh: the PestRaksh logo at the start of the home header, as on the
+// website. The logo is a transparent PNG in navy and orange, so it is shown
+// as it is only on the light cream header. On any other header (an image set
+// in Home Builder, or the coloured dark-mode header) it sits on a small cream
+// card, so neither half of it blends into the background.
+class HomeHeaderLogo extends StatelessWidget {
+  // About the website's phone header logo (38 px), so "PESTRAKSH" can be read.
+  static const double height = 38;
+  static const double _backingPadV = 3;
+  static const double _backingPadH = 6;
+
+  final bool onLightSurface;
+  final Color backingColor;
+
+  const HomeHeaderLogo({
+    super.key,
+    required this.onLightSurface,
+    required this.backingColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final logoH = onLightSurface ? height : height - _backingPadV * 2;
+    final logo = Image.asset(
+      AssetsConstants.pestrakshLogo,
+      height: logoH,
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.medium,
+      semanticLabel: 'PestRaksh',
+    );
+    if (onLightSurface) return logo;
+    return Container(
+      padding: const EdgeInsetsDirectional.symmetric(
+        horizontal: _backingPadH,
+        vertical: _backingPadV,
+      ),
+      decoration: AppDecorations.box(
+        color: backingColor,
+        borderRadius: AppRadius.r10,
+      ),
+      child: logo,
     );
   }
 }

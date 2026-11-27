@@ -47,11 +47,15 @@
             </intent-filter>
 
             <!-- App Links: https://pestraksh.com/product/{id} (needs assetlinks.json on the website to open the app) -->
+            <!-- PestRaksh: the website's service pages are /{zone}/product/{slug} (and /kn/{zone}/...), and
+                 bookings /order-detail/{id}; QR links /q/... stay in the browser (APP_PLAN Phase 9). -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="https" android:host="pestraksh.com" android:pathPrefix="/product"/>
+                <data android:scheme="https" android:host="pestraksh.com" android:pathPattern="/.*/product/.*"/>
+                <data android:scheme="https" android:host="pestraksh.com" android:pathPattern="/.*order-detail/.*"/>
             </intent-filter>
         </activity>
         <activity

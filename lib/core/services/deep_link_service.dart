@@ -5,7 +5,9 @@ import 'package:customer/commons/utils/app_log.dart';
 import 'package:customer/core/configs/app_config.dart';
 import 'package:customer/core/constants/app_constants.dart';
 import 'package:customer/core/constants/navigation_service.dart';
+import 'package:customer/core/local_storage/auth_hive_box.dart';
 import 'package:customer/core/local_storage/settings_hive_box.dart';
+import 'package:customer/core/routes/order_detail_args.dart';
 import 'package:customer/core/routes/product_detail_args.dart';
 import 'package:customer/core/routes/route_names.dart';
 import 'package:customer/features/products/repositories/product_repository.dart';
@@ -100,6 +102,34 @@ class DeepLinkService {
 
   // Slug/id is the segment right after "product". It may be preceded by
   // other segments, e.g. a store prefix: /bhuj-quick/product/{slug}.
+  /// PestRaksh: the booking id of an `order-detail/{id}` link, or null.
+  String? _bookingIdFrom(List<String> segments) {
+    final i = segments.indexOf('order-detail');
+    if (i == -1 || i + 1 >= segments.length) return null;
+    final id = segments[i + 1];
+    return int.tryParse(id) == null ? null : id;
+  }
+
+  /// PestRaksh: opens booking [orderId] for a signed-in customer; otherwise
+  /// the app just opens (the booking needs a login).
+  Future<void> _openBooking(
+    String orderId,
+    GlobalKey<NavigatorState> navigatorKey,
+  ) async {
+    if (!AuthHiveBox.instance.isLoggedIn) return;
+    var nav = navigatorKey.currentState;
+    var attempts = 0;
+    while (nav == null && attempts < 10) {
+      await Future.delayed(const Duration(milliseconds: 100));
+      nav = navigatorKey.currentState;
+      attempts++;
+    }
+    nav?.pushNamed(
+      RouteNames.orderDetail,
+      arguments: OrderDetailArgs(orderId: orderId, isOngoing: true),
+    );
+  }
+
   String? _identifierFrom(List<String> segments) {
     final i = segments.indexOf(AppConstants.deepLinkProductSegment);
     if (i == -1 || i + 1 >= segments.length) return null;
@@ -111,6 +141,13 @@ class DeepLinkService {
     String? identifier;
 
     if (uri.scheme == 'https' || uri.scheme == 'http') {
+      // PestRaksh: a booking link (/order-detail/{id}, /kn/order-detail/{id})
+      // opens the booking page in the app (APP_PLAN Phase 9).
+      final bookingId = _bookingIdFrom(uri.pathSegments);
+      if (bookingId != null) {
+        _openBooking(bookingId, navigatorKey);
+        return;
+      }
       // https://web-domain/[store/]product/{slug-or-id}
       identifier = _identifierFrom(uri.pathSegments);
     } else if (uri.scheme == _scheme) {

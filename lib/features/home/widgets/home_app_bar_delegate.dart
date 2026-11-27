@@ -16,6 +16,8 @@ import 'package:customer/features/home/utils/home_hex_color.dart';
 import 'package:customer/features/home/widgets/home_app_bar_widgets.dart';
 import 'package:customer/utils/extensions/context_extensions.dart';
 import 'package:customer/utils/extensions/localization_extensions.dart';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:customer/commons/widgets/app_text.dart';
@@ -89,14 +91,72 @@ class HomeAppBarDelegate extends SliverPersistentHeaderDelegate {
     return [dark, light];
   }
 
+  // PestRaksh: the website's header colour (`--header-surface` in its
+  // globals.css): 5% of the brand colour mixed into a warm off-white, so it
+  // follows the colour saved in the admin. #FB5B00 gives #FFF1E4.
+  static const Color _creamBase = Color(0xFFFFF9F0);
+  static const double _creamTint = 0.05;
+
+  Color _cream(BuildContext context) =>
+      Color.lerp(_creamBase, context.theme.primaryColor, _creamTint)!;
+
+  // PestRaksh: true when Home Builder gives this header (or the selected tab)
+  // a background image that the app can show.
+  bool get _hasHeaderImage {
+    if (homeType == HomeType.single) {
+      return BackgroundThemeType.fromRaw(layout?.backgroundTheme) ==
+              BackgroundThemeType.image &&
+          (layout?.backgroundImageUrl?.isNotEmpty ?? false);
+    }
+    final tab = selectedTab;
+    return tab != null &&
+        BackgroundThemeType.fromRaw(tab.backgroundTheme) ==
+            BackgroundThemeType.image &&
+        (tab.backgroundImageUrl?.isNotEmpty ?? false);
+  }
+
+  // PestRaksh: in light mode the header is the website's cream, so the
+  // transparent logo never blends into a brand-coloured header. A Home Builder
+  // header image still wins (the plan allows the gradient header image), but
+  // a Home Builder colour does not, because a strong colour hides the logo.
+  // Dark mode keeps the vendor's header: cream would glare there.
+  bool _usesCream(BuildContext context) => !context.isDark && !_hasHeaderImage;
+
+  // PestRaksh: WCAG contrast ratio of two colours (1 to 21).
+  static double _contrast(Color a, Color b) {
+    final la = a.computeLuminance();
+    final lb = b.computeLuminance();
+    return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05);
+  }
+
   Color _contentColor(BuildContext context) {
+    // PestRaksh: dark text on the cream. A Home Builder text colour is kept
+    // only when it is easy to read on cream (4.5:1); the white the vendor
+    // uses on a coloured header is not.
+    if (_usesCream(context)) {
+      final adminText = parseHomeHexColor(
+        homeType == HomeType.single
+            ? layout?.textColor
+            : selectedTab?.textColor,
+      );
+      if (adminText != null && _contrast(adminText, _cream(context)) >= 4.5) {
+        return adminText;
+      }
+      return context.cs.onSurface;
+    }
     if (homeType == HomeType.single) {
       return parseHomeHexColor(layout?.textColor) ?? context.cs.onPrimary;
     }
     return parseHomeHexColor(selectedTab?.textColor) ?? context.cs.onPrimary;
   }
 
-  Widget _wrapBackground(Widget child) {
+  Widget _wrapBackground(BuildContext context, Widget child) {
+    // PestRaksh: a flat cream, like the website's header. Still drawn by
+    // HomeAnimatedGradient so switching tabs fades as before.
+    if (_usesCream(context)) {
+      final cream = _cream(context);
+      return HomeAnimatedGradient(colors: [cream, cream], child: child);
+    }
     if (homeType == HomeType.single) {
       if (BackgroundThemeType.fromRaw(layout?.backgroundTheme) ==
           BackgroundThemeType.image) {
@@ -235,10 +295,15 @@ class HomeAppBarDelegate extends SliverPersistentHeaderDelegate {
     final t = (shrinkOffset / _locationH).clamp(0.0, 1.0);
     final locationH = _locationH * (1.0 - t);
     final Color contentColor = _contentColor(context);
+    // PestRaksh: computed once per frame for the background, the logo and
+    // the status bar.
+    final bool onCream = _usesCream(context);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      // PestRaksh: dark status bar icons on the light cream header.
+      value: onCream ? SystemUiOverlayStyle.dark : SystemUiOverlayStyle.light,
       child: _wrapBackground(
+        context,
         IconTheme(
           data: IconThemeData(color: contentColor),
           child: DefaultTextStyle(
@@ -293,6 +358,12 @@ class HomeAppBarDelegate extends SliverPersistentHeaderDelegate {
                                                 LanguageLabelKeys
                                                     .filterEcommerce,
                                               ),
+                                        // PestRaksh: white can't be read on
+                                        // the cream; elsewhere keep the
+                                        // vendor's white.
+                                        inactiveColor: onCream
+                                            ? contentColor
+                                            : null,
                                       ),
                                     ),
                                   Row(
@@ -300,6 +371,20 @@ class HomeAppBarDelegate extends SliverPersistentHeaderDelegate {
                                     crossAxisAlignment: .center,
                                     spacing: ThemeConstants.spaceS,
                                     children: [
+                                      // PestRaksh: the logo, then a thin
+                                      // line, then the location, as in the
+                                      // website's header.
+                                      HomeHeaderLogo(
+                                        onLightSurface: onCream,
+                                        backingColor: _cream(context),
+                                      ),
+                                      Container(
+                                        width: 1,
+                                        height: HomeHeaderLogo.height * 0.7,
+                                        color: contentColor.withValues(
+                                          alpha: 0.25,
+                                        ),
+                                      ),
                                       Expanded(
                                         child: GestureDetector(
                                           onTap: onLocationTap,
