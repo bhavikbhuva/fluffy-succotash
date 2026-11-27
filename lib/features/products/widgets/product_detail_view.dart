@@ -18,6 +18,7 @@ import 'package:customer/features/products/cubit/product_detail_cubit.dart';
 import 'package:customer/features/products/cubit/ratings_list_cubit.dart';
 import 'package:customer/features/products/models/product_rating_model.dart';
 import 'package:customer/features/products/models/product_detail_model.dart';
+import 'package:customer/features/products/models/package_plans_model.dart';
 import 'package:customer/core/routes/route_names.dart';
 import 'package:customer/features/products/widgets/delivery_time_icon.dart';
 import 'package:customer/features/products/widgets/product_detail_app_bar_widgets.dart';
@@ -235,6 +236,298 @@ class _ProductDetailViewState extends State<ProductDetailView>
     );
   }
 
+  // ── PestRaksh: package plans (choose a plan, then a size) ──────────────────
+
+  /// PestRaksh: the service's packages grouped into plans, or null when the
+  /// service has no plans or its data is incomplete; it then keeps the
+  /// vendor's list.
+  PackagePlanGroups<Variants>? get _planGroups => groupPackagePlans(
+    widget.product.packagePlans,
+    widget.product.variants,
+    planKey: (v) => v.planKey ?? '',
+    sizeLabel: (v) => v.sizeLabel ?? '',
+  );
+
+  /// PestRaksh: what a package costs: its sale price when it has one, else
+  /// its price. The detail model's copy of `packageEffectivePrice`, which is
+  /// written for the list model's `Variants`.
+  static double _packagePrice(Variants v) {
+    final price = v.price ?? 0;
+    final sale = v.discountedPrice ?? 0;
+    return sale > 0 && sale < price ? sale : price;
+  }
+
+  String _money(double amount) =>
+      '${widget.product.currency ?? ''}'
+      '${amount.formatPrice(widget.product.decimalPoint ?? 2)}';
+
+  /// PestRaksh: selects package [v] by its index in `product.variants`, so the
+  /// price, the "Package:" line and ADD follow it. The axis values are set
+  /// first, as the vendor's list does, so the cubit's attribute selection
+  /// stays in step; `selectVariant` then pins the exact package, because
+  /// packages in different plans can share the same attribute values and the
+  /// axis match alone would land on the first plan's.
+  void _selectPackage(Variants v) {
+    final variants = widget.product.variants ?? const <Variants>[];
+    final index = variants.indexWhere((x) => identical(x, v));
+    if (index < 0 || index == widget.selectedVariantIndex) return;
+    final cubit = context.read<ProductDetailCubit>();
+    for (final a in v.attributes ?? <Attributes>[]) {
+      if (a.attributeId == null || a.attributeValueId == null) continue;
+      cubit.selectAxisValue(a.attributeId!, a.attributeValueId!);
+    }
+    cubit.selectVariant(index);
+  }
+
+  /// PestRaksh: the website's PackagePlanPicker: plan cards (only with two or
+  /// more plans), the plan's description, then one button per size.
+  Widget _packagePlanPicker(PackagePlanGroups<Variants> groups) {
+    final variants = widget.product.variants ?? const <Variants>[];
+    final selected = variants.isEmpty
+        ? null
+        : variants[widget.selectedVariantIndex.clamp(0, variants.length - 1)];
+    final activePlan = groups.planOf(selected, (v) => v.planKey ?? '');
+    final showPlans = groups.plans.length > 1;
+    final headingStyle = context.tt.labelSmall?.copyWith(
+      fontWeight: FontWeight.w600,
+      color: context.cs.onSurfaceVariant,
+      letterSpacing: 0.5,
+    );
+    final sizeHeading = groups.sizeHeading.isNotEmpty
+        ? groups.sizeHeading
+        : context.translate(LanguageLabelKeys.chooseSize);
+    // As on the website: three sizes a row, two when a label is long
+    // ("1,001 to 2,000 sq ft").
+    final longSizes = activePlan.variants.any(
+      (v) => (v.sizeLabel ?? '').trim().length > 10,
+    );
+
+    return Column(
+      crossAxisAlignment: .start,
+      children: [
+        if (showPlans) ...[
+          AppText(LanguageLabelKeys.choosePlan, style: headingStyle),
+          AppSpacing.h8,
+          _gridWrap(
+            columns: 2,
+            children: [
+              for (final plan in groups.plans)
+                _planCard(plan, plan.key == activePlan.key, selected),
+            ],
+          ),
+          AppSpacing.h12,
+        ],
+        if (activePlan.description.isNotEmpty) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsetsDirectional.all(ThemeConstants.paddingM),
+            decoration: AppDecorations.box(
+              color: context.cs.surface,
+              borderRadius: AppRadius.r12,
+              border: Border.all(color: context.cs.outlineVariant),
+            ),
+            child: Text.rich(
+              TextSpan(
+                text: showPlans
+                    ? '${activePlan.name}: '
+                    : '${context.translate(LanguageLabelKeys.planIncludes)}: ',
+                style: context.tt.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: context.cs.onSurface,
+                  height: 1.5,
+                ),
+                children: [
+                  TextSpan(
+                    text: activePlan.description,
+                    style: context.tt.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w400,
+                      color: context.cs.onSurfaceVariant,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          AppSpacing.h12,
+        ],
+        AppText(sizeHeading, style: headingStyle),
+        AppSpacing.h8,
+        _gridWrap(
+          columns: longSizes ? 2 : 3,
+          children: [
+            for (final v in activePlan.variants)
+              _sizeButton(v, identical(v, selected)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// PestRaksh: a [Wrap] whose children share the row equally, so cards line
+  /// up in columns and still fit narrow phones.
+  Widget _gridWrap({required int columns, required List<Widget> children}) {
+    const gap = ThemeConstants.spaceS;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: [
+            for (final child in children) SizedBox(width: width, child: child),
+          ],
+        );
+      },
+    );
+  }
+
+  BoxDecoration _optionDecoration({
+    required bool selected,
+    bool disabled = false,
+  }) => AppDecorations.box(
+    color: selected
+        ? context.cs.primary.withValues(alpha: 0.08)
+        : context.cs.surface,
+    borderRadius: AppRadius.r12,
+    border: Border.all(
+      color: selected
+          ? context.cs.primary
+          : disabled
+          ? context.cs.outlineVariant.withValues(alpha: 0.3)
+          : context.cs.outlineVariant,
+      width: selected ? 1.5 : 1.0,
+    ),
+  );
+
+  /// PestRaksh: one plan: its name and lowest price, "From" when its sizes
+  /// differ in price. Tapping keeps the customer's size (2 BHK stays 2 BHK).
+  Widget _planCard(
+    PackagePlan<Variants> plan,
+    bool active,
+    Variants? selected,
+  ) {
+    final prices = [
+      for (final v in plan.variants)
+        if (_packagePrice(v) > 0) _packagePrice(v),
+    ];
+    final low = prices.isEmpty ? null : prices.reduce((a, b) => a < b ? a : b);
+    final from = prices.toSet().length > 1;
+    return InkWell(
+      borderRadius: AppRadius.r12,
+      onTap: active
+          ? null
+          : () => _selectPackage(
+              samePackageSizeIn(plan, selected, (v) => v.sizeLabel ?? ''),
+            ),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsetsDirectional.all(ThemeConstants.paddingM),
+        decoration: _optionDecoration(selected: active),
+        child: Column(
+          crossAxisAlignment: .start,
+          spacing: ThemeConstants.spaceXS,
+          children: [
+            AppText(
+              plan.name,
+              style: context.tt.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: active ? context.cs.primary : context.cs.onSurface,
+                height: 1.3,
+              ),
+            ),
+            if (low != null)
+              Text.rich(
+                TextSpan(
+                  text: from
+                      ? '${context.translate(LanguageLabelKeys.fromPrice)} '
+                      : '',
+                  style: context.tt.bodySmall?.copyWith(
+                    color: context.cs.onSurfaceVariant,
+                  ),
+                  children: [
+                    TextSpan(
+                      text: _money(low),
+                      style: context.tt.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: context.cs.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// PestRaksh: one size with its price, the old price struck through when
+  /// on sale. Out of stock looks disabled and can't be picked, as in the
+  /// vendor's list.
+  Widget _sizeButton(Variants v, bool selected) {
+    final disabled = v.inStock == false;
+    final raw = v.price ?? 0;
+    final price = _packagePrice(v);
+    final fg = disabled
+        ? context.cs.onSurface.withValues(alpha: 0.38)
+        : selected
+        ? context.cs.primary
+        : context.cs.onSurface;
+    return InkWell(
+      borderRadius: AppRadius.r12,
+      onTap: disabled || selected ? null : () => _selectPackage(v),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsetsDirectional.symmetric(
+          horizontal: ThemeConstants.paddingXS,
+          vertical: ThemeConstants.paddingS,
+        ),
+        decoration: _optionDecoration(selected: selected, disabled: disabled),
+        child: Column(
+          spacing: ThemeConstants.spaceXXS,
+          children: [
+            AppText(
+              (v.sizeLabel ?? '').trim(),
+              textAlign: .center,
+              maxLines: 2,
+              overflow: .ellipsis,
+              style: context.tt.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: fg,
+                height: 1.25,
+              ),
+            ),
+            AppText(
+              _money(price),
+              textAlign: .center,
+              maxLines: 1,
+              overflow: .ellipsis,
+              style: context.tt.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: fg,
+              ),
+            ),
+            if (price < raw)
+              AppText(
+                _money(raw),
+                textAlign: .center,
+                maxLines: 1,
+                overflow: .ellipsis,
+                style: context.tt.labelSmall?.copyWith(
+                  color: context.cs.onSurfaceVariant.withValues(
+                    alpha: disabled ? 0.38 : 1,
+                  ),
+                  decoration: TextDecoration.lineThrough,
+                  decorationColor: context.cs.onSurfaceVariant,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _toggleKeyFeatures() {
     setState(() => _showKeyFeatures = !_showKeyFeatures);
     if (_showKeyFeatures) {
@@ -289,6 +582,9 @@ class _ProductDetailViewState extends State<ProductDetailView>
     final displayDesc = widget.product.description ?? '';
 
     final activeVariant = variants.isNotEmpty ? variants[safeIndex] : null;
+    // PestRaksh: a service with package plans shows "choose a plan, then a
+    // size" in place of the vendor's variant list; null keeps that list.
+    final planGroups = _planGroups;
     // PestRaksh: the title is the service ("Cockroach Control"), as on the
     // website; the package name only stands in when the service has none.
     final displayName =
@@ -778,8 +1074,22 @@ class _ProductDetailViewState extends State<ProductDetailView>
                   ),
                 ),
 
+                // ── PestRaksh: package plans (choose a plan, then a size) ────
+                if (planGroups != null) ...[
+                  _ThinDivider(),
+                  Padding(
+                    padding: const EdgeInsetsDirectional.fromSTEB(
+                      ThemeConstants.paddingL,
+                      ThemeConstants.paddingM,
+                      ThemeConstants.paddingL,
+                      ThemeConstants.paddingS,
+                    ),
+                    child: _packagePlanPicker(planGroups),
+                  ),
+                ],
+
                 // ── Add-on product: variants as single choice, sheet style ───
-                if (_showAddonVariantCard) ...[
+                if (planGroups == null && _showAddonVariantCard) ...[
                   _ThinDivider(),
                   Padding(
                     padding: const EdgeInsetsDirectional.fromSTEB(
@@ -803,7 +1113,8 @@ class _ProductDetailViewState extends State<ProductDetailView>
                 ],
 
                 // ── Variant axes ─────────────────────────────────────────────
-                if (!_showAddonVariantCard &&
+                if (planGroups == null &&
+                    !_showAddonVariantCard &&
                     (widget.product.variantAxes ?? []).isNotEmpty) ...[
                   _ThinDivider(),
                   ...((widget.product.variantAxes ?? []).map((axis) {

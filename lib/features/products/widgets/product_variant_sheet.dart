@@ -22,6 +22,8 @@ import 'package:customer/features/products/models/addon_model.dart';
 import 'package:customer/features/products/models/product_detail_model.dart'
     as detail;
 import 'package:customer/features/products/models/product_model.dart';
+import 'package:customer/features/products/models/package_plans_model.dart';
+import 'package:customer/features/products/utils/package_price.dart';
 import 'package:customer/core/local_storage/auth_hive_box.dart';
 import 'package:customer/utils/extensions/context_extensions.dart';
 import 'package:customer/utils/extensions/localization_extensions.dart';
@@ -62,6 +64,18 @@ class ProductVariantSheet extends StatelessWidget {
         parentContext: parentContext,
       );
     }
+    // PestRaksh: a service with package plans (Cockroach Control has 19
+    // packages in 4 plans) is picked in two steps, plan then size, as in the
+    // website's package sheet; null keeps the plain list below.
+    final planGroups = groupPackagePlans<Variants>(
+      product.packagePlans,
+      activeVariants,
+      planKey: _planKeyOf,
+      sizeLabel: _sizeLabelOf,
+    );
+    if (planGroups != null) {
+      return _PlanPackageSheetBody(sheet: this, groups: planGroups);
+    }
     return ConstrainedBox(
       constraints: BoxConstraints(maxHeight: context.screenHeight * 0.75),
       child: Column(
@@ -88,154 +102,12 @@ class ProductVariantSheet extends StatelessWidget {
                 separatorBuilder: (_, _) => AppSpacing.h10,
                 itemBuilder: (_, i) {
                   final v = activeVariants[i];
-                  final rawPrice = (v.price ?? 0).toDouble();
-                  final rawDisc = (v.discountedPrice ?? 0).toDouble();
-                  final hasDisc = rawDisc > 0 && rawDisc < rawPrice;
-                  final displayPrice = hasDisc ? rawDisc : rawPrice;
-                  final discPct = hasDisc && rawPrice > 0
-                      ? ((rawPrice - rawDisc) / rawPrice * 100).round()
-                      : 0;
-
-                  final variantImage = (v.image != null && v.image!.isNotEmpty)
-                      ? v.image!
-                      : '';
-
                   return SlideAnimation(
                     position: i,
                     slideDirection: SlideDirection.fromBottom,
                     itemCount: activeVariants.length,
                     animationController: animationController,
-                    child: Container(
-                      padding: const EdgeInsetsDirectional.all(
-                        ThemeConstants.paddingM,
-                      ),
-                      decoration: AppDecorations.box(
-                        color: context.cs.surface,
-                        borderRadius: AppRadius.r12,
-                        border: Border.all(
-                          color: context.cs.outlineVariant,
-                          width: 0.5,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          if (variantImage.isNotEmpty) ...[
-                            Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                AppNetworkImage(
-                                  url: variantImage,
-                                  width: context.screenWidth * 0.18,
-                                  height: context.screenWidth * 0.18,
-                                  borderRadius: AppRadius.r8,
-                                  fit: BoxFit.contain,
-                                ),
-                                if (hasDisc)
-                                  PositionedDirectional(
-                                    top: 0,
-                                    start: 5,
-                                    child: ClipPath(
-                                      clipper: const ZigzagBadgeClipper(),
-                                      child: Container(
-                                        padding:
-                                            const EdgeInsetsDirectional.only(
-                                              start: ThemeConstants.paddingXS,
-                                              end: ThemeConstants.paddingXS,
-                                              top: ThemeConstants.paddingXS,
-                                              bottom: ThemeConstants.paddingXS,
-                                            ),
-                                        color: context.cs.primary,
-                                        child: AppText(
-                                          '$discPct${AppConstants.percentSymbol}\n${context.translate(LanguageLabelKeys.off).toUpperCase()}',
-                                          textAlign: .center,
-                                          style: context.tt.labelSmall
-                                              ?.copyWith(
-                                                fontSize: 8,
-                                                height: 1.1,
-                                                fontWeight: FontWeight.w800,
-                                                color: context.cs.onPrimary,
-                                              ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            AppSpacing.w10,
-                          ],
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: .start,
-                              spacing: ThemeConstants.spaceXS,
-                              children: [
-                                AppText(
-                                  _unitLabel(v),
-                                  style: context.tt.bodySmall?.copyWith(
-                                    fontWeight: FontWeight.w400,
-                                    color: context.cs.onSurface,
-                                  ),
-                                ),
-                                Row(
-                                  spacing: ThemeConstants.spaceS,
-                                  children: [
-                                    AppText(
-                                      '${product.currency}${displayPrice.formatPrice(product.decimalPoint ?? 2)}',
-                                      style: context.tt.bodyMedium?.copyWith(
-                                        fontWeight: FontWeight.w800,
-                                        color: context.cs.onSurface,
-                                      ),
-                                    ),
-                                    if (hasDisc) ...[
-                                      AppText(
-                                        '${product.currency}${rawPrice.formatPrice(product.decimalPoint ?? 2)}',
-                                        style: context.tt.bodySmall?.copyWith(
-                                          color: context.cs.onSurfaceVariant,
-                                          decoration:
-                                              TextDecoration.lineThrough,
-                                          decorationColor:
-                                              context.cs.onSurfaceVariant,
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          AppSpacing.w12,
-                          CartButton(
-                            key: ValueKey('sheet_btn_${v.id}'),
-                            width: 80,
-                            height: 36,
-                            fontSize: 12,
-                            optionsFontSize: 8,
-                            optionCount: 1,
-                            initialCount: context
-                                .read<CartCubit>()
-                                .state
-                                .countFor(v.id?.toString() ?? ''),
-                            productId: product.id?.toString() ?? '',
-                            variantId: v.id?.toString() ?? '',
-                            price: displayPrice,
-                            imageUrl: variantImage,
-                            totalAllowedQuantity:
-                                product.totalAllowedQuantity ?? 0,
-                            onFirstAdd: () => onFirstAdd(v),
-                            onLastRemove: () {},
-                            onLimitReached: () => AppNavigator.pop(context),
-                            snackBarContext: parentContext,
-                            // PestRaksh: one package per service; another
-                            // one already in the cart blocks ADD here, with
-                            // the message (shown once the sheet closes).
-                            servicePackageIds: [
-                              for (final p
-                                  in product.variants ?? activeVariants)
-                                p.id?.toString() ?? '',
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
+                    child: _packageRow(context, v, _unitLabel(v)),
                   );
                 },
               ),
@@ -243,6 +115,409 @@ class ProductVariantSheet extends StatelessWidget {
           ),
           AppSpacing.h8,
         ],
+      ),
+    );
+  }
+
+  /// One package with its price and its own ADD button.
+  // PestRaksh: taken out of the list above so the plan step shows the very
+  // same row, with [label] being the size there ("2 BHK") instead of the
+  // package's full name, as the plan is already chosen.
+  Widget _packageRow(BuildContext context, Variants v, String label) {
+    final rawPrice = (v.price ?? 0).toDouble();
+    final rawDisc = (v.discountedPrice ?? 0).toDouble();
+    final hasDisc = rawDisc > 0 && rawDisc < rawPrice;
+    final displayPrice = hasDisc ? rawDisc : rawPrice;
+    final discPct = hasDisc && rawPrice > 0
+        ? ((rawPrice - rawDisc) / rawPrice * 100).round()
+        : 0;
+
+    final variantImage = (v.image != null && v.image!.isNotEmpty)
+        ? v.image!
+        : '';
+
+    return Container(
+      padding: const EdgeInsetsDirectional.all(ThemeConstants.paddingM),
+      decoration: AppDecorations.box(
+        color: context.cs.surface,
+        borderRadius: AppRadius.r12,
+        border: Border.all(color: context.cs.outlineVariant, width: 0.5),
+      ),
+      child: Row(
+        children: [
+          if (variantImage.isNotEmpty) ...[
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                AppNetworkImage(
+                  url: variantImage,
+                  width: context.screenWidth * 0.18,
+                  height: context.screenWidth * 0.18,
+                  borderRadius: AppRadius.r8,
+                  fit: BoxFit.contain,
+                ),
+                if (hasDisc)
+                  PositionedDirectional(
+                    top: 0,
+                    start: 5,
+                    child: ClipPath(
+                      clipper: const ZigzagBadgeClipper(),
+                      child: Container(
+                        padding: const EdgeInsetsDirectional.only(
+                          start: ThemeConstants.paddingXS,
+                          end: ThemeConstants.paddingXS,
+                          top: ThemeConstants.paddingXS,
+                          bottom: ThemeConstants.paddingXS,
+                        ),
+                        color: context.cs.primary,
+                        child: AppText(
+                          '$discPct${AppConstants.percentSymbol}\n${context.translate(LanguageLabelKeys.off).toUpperCase()}',
+                          textAlign: .center,
+                          style: context.tt.labelSmall?.copyWith(
+                            fontSize: 8,
+                            height: 1.1,
+                            fontWeight: FontWeight.w800,
+                            color: context.cs.onPrimary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            AppSpacing.w10,
+          ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: .start,
+              spacing: ThemeConstants.spaceXS,
+              children: [
+                AppText(
+                  label,
+                  style: context.tt.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w400,
+                    color: context.cs.onSurface,
+                  ),
+                ),
+                Row(
+                  spacing: ThemeConstants.spaceS,
+                  children: [
+                    AppText(
+                      '${product.currency}${displayPrice.formatPrice(product.decimalPoint ?? 2)}',
+                      style: context.tt.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: context.cs.onSurface,
+                      ),
+                    ),
+                    if (hasDisc) ...[
+                      AppText(
+                        '${product.currency}${rawPrice.formatPrice(product.decimalPoint ?? 2)}',
+                        style: context.tt.bodySmall?.copyWith(
+                          color: context.cs.onSurfaceVariant,
+                          decoration: TextDecoration.lineThrough,
+                          decorationColor: context.cs.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+          AppSpacing.w12,
+          CartButton(
+            key: ValueKey('sheet_btn_${v.id}'),
+            width: 80,
+            height: 36,
+            fontSize: 12,
+            optionsFontSize: 8,
+            optionCount: 1,
+            initialCount: context.read<CartCubit>().state.countFor(
+              v.id?.toString() ?? '',
+            ),
+            productId: product.id?.toString() ?? '',
+            variantId: v.id?.toString() ?? '',
+            price: displayPrice,
+            imageUrl: variantImage,
+            totalAllowedQuantity: product.totalAllowedQuantity ?? 0,
+            onFirstAdd: () => onFirstAdd(v),
+            onLastRemove: () {},
+            onLimitReached: () => AppNavigator.pop(context),
+            snackBarContext: parentContext,
+            // PestRaksh: one package per service; another
+            // one already in the cart blocks ADD here, with
+            // the message (shown once the sheet closes).
+            servicePackageIds: [
+              for (final p in product.variants ?? activeVariants)
+                p.id?.toString() ?? '',
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// PestRaksh: the package's plan and size, as groupPackagePlans reads them.
+String _planKeyOf(Variants v) => v.planKey ?? '';
+String _sizeLabelOf(Variants v) => v.sizeLabel ?? '';
+
+/// PestRaksh: the package sheet of a service with package plans, as the
+/// website's PackagePlanPicker: "Choose a plan" (only with 2 or more plans),
+/// the plan's description, the size heading, then the active plan's packages,
+/// each with its own ADD button. Stateful so the chosen plan stays while the
+/// sheet is open; switching plan only shows that plan's packages and adds
+/// nothing.
+class _PlanPackageSheetBody extends StatefulWidget {
+  const _PlanPackageSheetBody({required this.sheet, required this.groups});
+
+  final ProductVariantSheet sheet;
+  final PackagePlanGroups<Variants> groups;
+
+  @override
+  State<_PlanPackageSheetBody> createState() => _PlanPackageSheetBodyState();
+}
+
+class _PlanPackageSheetBodyState extends State<_PlanPackageSheetBody> {
+  late String _planKey;
+
+  ProductDataModel get product => widget.sheet.product;
+
+  @override
+  void initState() {
+    super.initState();
+    // PestRaksh: open on the plan of the package already in the cart, so the
+    // customer sees it with its "Added" button; else the first plan.
+    final cart = context.read<CartCubit>().state;
+    final inCart = (product.variants ?? widget.sheet.activeVariants)
+        .where((v) => cart.countFor(v.id?.toString() ?? '') > 0)
+        .firstOrNull;
+    _planKey = widget.groups.planOf(inCart, _planKeyOf).key;
+  }
+
+  PackagePlan<Variants> get _plan => widget.groups.plans.firstWhere(
+    (p) => p.key == _planKey,
+    orElse: () => widget.groups.plans.first,
+  );
+
+  String _money(double value) =>
+      '${product.currency}${value.formatPrice(product.decimalPoint ?? 2)}';
+
+  /// The plan's lowest price, and whether its sizes cost different amounts
+  /// ("From ₹…"), as on the website. Null when no size has a price.
+  ({double low, bool from})? _planPrice(PackagePlan<Variants> plan) {
+    final prices = [
+      for (final v in plan.variants)
+        if (packageEffectivePrice(v) > 0) packageEffectivePrice(v),
+    ];
+    if (prices.isEmpty) return null;
+    final low = prices.reduce((a, b) => a < b ? a : b);
+    return (low: low, from: prices.any((p) => p != prices.first));
+  }
+
+  TextStyle? get _sectionStyle => context.tt.bodySmall?.copyWith(
+    fontWeight: FontWeight.w700,
+    color: context.cs.onSurfaceVariant,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final plans = widget.groups.plans;
+    final plan = _plan;
+    final showPlans = plans.length > 1;
+    final sizeHeading = widget.groups.sizeHeading.isNotEmpty
+        ? widget.groups.sizeHeading
+        : context.translate(LanguageLabelKeys.chooseSize);
+    final rows = plan.variants;
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: context.screenHeight * 0.75),
+      child: Column(
+        mainAxisSize: .min,
+        crossAxisAlignment: .start,
+        children: [
+          AppSpacing.h16,
+          AppText(
+            product.name ?? '',
+            style: context.tt.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w900,
+              color: context.cs.onSurface,
+            ),
+          ),
+          AppSpacing.h4,
+          // PestRaksh: the plans stay above the list, so another plan is one
+          // tap away however far the sizes are scrolled.
+          if (showPlans) ...[
+            AppSpacing.h8,
+            Text(
+              context.translate(LanguageLabelKeys.choosePlan),
+              style: _sectionStyle,
+            ),
+            AppSpacing.h8,
+            Column(
+              spacing: ThemeConstants.spaceS,
+              children: [
+                for (var i = 0; i < plans.length; i += 2)
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: .stretch,
+                      spacing: ThemeConstants.spaceS,
+                      children: [
+                        Expanded(child: _planCard(plans[i], plan)),
+                        Expanded(
+                          child: i + 1 < plans.length
+                              ? _planCard(plans[i + 1], plan)
+                              : const SizedBox.shrink(),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+            AppSpacing.h4,
+          ],
+          Flexible(
+            // Keyed by plan: a fresh list (and its slide-in) per plan.
+            child: SlideAnimationScope(
+              key: ValueKey('plan_${plan.key}'),
+              builder: (context, animationController) => ListView(
+                shrinkWrap: true,
+                padding: const EdgeInsetsDirectional.symmetric(
+                  vertical: ThemeConstants.paddingS,
+                ),
+                children: [
+                  if (plan.description.isNotEmpty) ...[
+                    _description(plan, showPlans),
+                    AppSpacing.h12,
+                  ],
+                  Text(sizeHeading, style: _sectionStyle),
+                  AppSpacing.h8,
+                  for (var i = 0; i < rows.length; i++) ...[
+                    if (i > 0) AppSpacing.h10,
+                    SlideAnimation(
+                      position: i,
+                      slideDirection: SlideDirection.fromBottom,
+                      itemCount: rows.length,
+                      animationController: animationController,
+                      child: widget.sheet._packageRow(
+                        context,
+                        rows[i],
+                        _sizeLabelOf(rows[i]).trim(),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          AppSpacing.h8,
+        ],
+      ),
+    );
+  }
+
+  /// A plan to choose: its name and lowest price.
+  Widget _planCard(PackagePlan<Variants> plan, PackagePlan<Variants> active) {
+    final selected = plan.key == active.key;
+    final price = _planPrice(plan);
+    return Semantics(
+      selected: selected,
+      child: Material(
+        color: selected
+            ? context.cs.primary.withValues(alpha: 0.08)
+            : context.cs.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: AppRadius.r12,
+          side: BorderSide(
+            color: selected ? context.cs.primary : context.cs.outlineVariant,
+            width: selected ? ThemeConstants.borderThin : 0.5,
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: selected
+              ? null
+              : () {
+                  AppHaptics.tap();
+                  setState(() => _planKey = plan.key);
+                },
+          child: Padding(
+            padding: const EdgeInsetsDirectional.all(ThemeConstants.paddingM),
+            child: Column(
+              crossAxisAlignment: .start,
+              mainAxisAlignment: .center,
+              spacing: ThemeConstants.spaceXS,
+              children: [
+                Text(
+                  plan.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.tt.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: context.cs.onSurface,
+                  ),
+                ),
+                if (price != null)
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        if (price.from)
+                          TextSpan(
+                            text:
+                                '${context.translate(LanguageLabelKeys.fromPrice)} ',
+                          ),
+                        TextSpan(
+                          text: _money(price.low),
+                          style: context.tt.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: context.cs.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.tt.labelSmall?.copyWith(
+                      color: context.cs.onSurfaceVariant,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// "Plan name: what it includes" (with one plan, "What's included: …").
+  Widget _description(PackagePlan<Variants> plan, bool showPlans) {
+    final title = showPlans
+        ? plan.name
+        : context.translate(LanguageLabelKeys.planIncludes);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsetsDirectional.all(ThemeConstants.paddingM),
+      decoration: AppDecorations.box(
+        color: context.cs.surface,
+        borderRadius: AppRadius.r12,
+        border: Border.all(color: context.cs.outlineVariant, width: 0.5),
+      ),
+      child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(
+              text: '$title: ',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: context.cs.onSurface,
+              ),
+            ),
+            TextSpan(text: plan.description),
+          ],
+        ),
+        style: context.tt.bodySmall?.copyWith(
+          height: 1.4,
+          color: context.cs.onSurfaceVariant,
+        ),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:customer/features/products/models/addon_model.dart';
+import 'package:customer/features/products/models/package_plans_model.dart';
 import 'package:customer/utils/json_parsers.dart';
 import 'package:customer/utils/media_type.dart';
 
@@ -73,6 +74,8 @@ class ProductDetailDataModel {
   StarBreakdown? starBreakdown;
   List<VariantAxes>? variantAxes;
   List<Variants>? variants;
+  // PestRaksh: the service's package plans (APP_PLAN Phase 5).
+  PackagePlansConfig? packagePlans;
   String? tagNames;
   String? branchName;
   String? timeToDeliver;
@@ -203,6 +206,7 @@ class ProductDetailDataModel {
           .map((v) => Variants.fromJson(v as Map<String, dynamic>))
           .toList();
     }
+    packagePlans = PackagePlansConfig.tryParse(json['package_plans']);
     tagNames = parseString(json['tag_names']);
     branchName = parseString(json['branch_name']);
     timeToDeliver = parseString(json['time_to_deliver']);
@@ -379,6 +383,9 @@ class Variants {
   bool? fewQuantityLeft;
   int? cartCount;
   int? isNotifyRequested;
+  // PestRaksh: the package's plan and size (APP_PLAN Phase 5).
+  String? planKey;
+  String? sizeLabel;
   List<Images>? images;
   List<Attributes>? attributes;
   List<CustomSections>? customSections;
@@ -426,6 +433,8 @@ class Variants {
     fewQuantityLeft = parseBool(json['few_quantity_left']);
     cartCount = parseInt(json['cart_count']);
     isNotifyRequested = parseInt(json['is_notify_requested']) ?? 0;
+    planKey = parseString(json['plan_key']);
+    sizeLabel = parseString(json['size_label']);
     // PestRaksh: warranty fields; older servers don't send them, so 0.
     warrantyDays = parseInt(json['warranty_days']) ?? 0;
     freeRevisits = parseInt(json['free_revisits']) ?? 0;

@@ -886,5 +886,8 @@
   "warranty_starts_after_last_visit": "Warranty starts after the last visit.",
   "request_free_revisit": "Request a free re-visit",
   "revisit_what_happened": "Tell us what you noticed (optional)",
-  "send_request": "Send request"
+  "send_request": "Send request",
+  "choose_plan": "Choose a plan",
+  "choose_size": "Choose a size",
+  "plan_includes": "What's included"
 }

@@ -994,4 +994,9 @@ class LanguageLabelKeys {
   static const String revisitWhatHappened = "revisit_what_happened";
   static const String sendRequest = "send_request";
   static const String technician = "technician";
+
+  // PestRaksh: package picker (APP_PLAN Phase 5).
+  static const String choosePlan = "choose_plan";
+  static const String chooseSize = "choose_size";
+  static const String planIncludes = "plan_includes";
 }

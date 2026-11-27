@@ -1,5 +1,6 @@
 import 'package:customer/features/orders/models/order_model.dart';
 import 'package:customer/features/products/models/addon_model.dart';
+import 'package:customer/features/products/models/package_plans_model.dart';
 import 'package:customer/utils/json_parsers.dart';
 import 'package:customer/utils/media_type.dart';
 
@@ -111,6 +112,8 @@ class ProductDataModel {
   int? stock;
   int? totalAllowedQuantity;
   List<Variants>? variants;
+  // PestRaksh: the service's package plans (APP_PLAN Phase 5).
+  PackagePlansConfig? packagePlans;
   String? timeToDeliver;
   String? prescriptionNote;
   bool? isPrescriptionRequired;
@@ -243,6 +246,7 @@ class ProductDataModel {
           .map((v) => Variants.fromJson(v as Map<String, dynamic>))
           .toList();
     }
+    packagePlans = PackagePlansConfig.tryParse(json['package_plans']);
     timeToDeliver = parseString(json['time_to_deliver']) ?? "";
     prescriptionNote = parseString(json['prescription_note']);
     isPrescriptionRequired =
@@ -350,6 +354,9 @@ class Variants {
   bool? inStock;
   int? quantity;
   int? isNotifyRequested;
+  // PestRaksh: the package's plan and size (APP_PLAN Phase 5).
+  String? planKey;
+  String? sizeLabel;
   List<CustomSections>? customSections;
 
   Variants({
@@ -395,6 +402,8 @@ class Variants {
     inStock = parseBool(json['in_stock']);
     quantity = parseInt(json['quantity']) ?? 0;
     isNotifyRequested = parseInt(json['is_notify_requested']) ?? 0;
+    planKey = parseString(json['plan_key']);
+    sizeLabel = parseString(json['size_label']);
     final rawCustomSections = json['custom_sections'];
     if (rawCustomSections is List) {
       customSections = rawCustomSections
