@@ -17,8 +17,11 @@ README is the vendor's.
 - **First APK:** 26 Nov 2026, built from `c14e219` (Flutter 3.50.1), 46 MB, signed with this repo's key
   (SHA-256 checked). The first cloud build had failed on an old payment plugin (`flutter_paystack`); fixed in
   `b191c2e`.
-- **Phase 1 built, 26 Nov 2026: booking works in the code.** It is in the next APK after the push; the owner's
-  test is still to do. The phase brought:
+- **Phase 1 built, 26 Nov 2026: booking works in the code.** Pushed at 18:34 (`a25c97a`), but GitHub
+  started no build for it: the commit message contained the text "[skip ci]" inside a sentence ("Not marked
+  [skip ci]"), and GitHub skips the build whenever that text appears anywhere in the newest commit's message.
+  An empty commit (`9d9dc0c`) started it: the Phase 1 APK was built on 27 Nov 2026 and is on the owner's
+  Desktop as `PestRaksh-phase1.apk`. The owner's test is still to do. The phase brought:
   - India time (`lib/utils/server_time.dart`), so times are no longer 5½ hours late;
   - the texts refresh at each start;
   - checkout's "Service Schedule & Time Slot": the date strip and arrival windows, sent as `booking_date` and
@@ -26,6 +29,10 @@ README is the vendor's.
   - the Pick Up switch hidden.
 
   The APK of 26 Nov (`c14e219`) can't book yet.
+- **Phase 2, part 2A built, 27 Nov 2026 (not pushed):** "From ₹…" on service cards and list rows (the
+  cheapest bookable package, `lib/features/products/utils/package_price.dart`); "✓ Added" instead of the
+  − 1 + stepper (`commons/widgets/cart_button.dart`); ADD refuses a second package of the same service.
+  Parts 2B (service page) and 2C (cart and checkout) are next. Details in the backend's `docs/APP_PLAN.md`.
 - **Owner, in the admin:** Zones → Bangalore → **Quick** only, which hides the Quick / Shop switch in the app.
 - **Texts as on the website** (26 Nov 2026): Refund Policy, Privacy Policy, Book Again, Continue with Google,
   and the My Bookings tabs Upcoming / Past. They are in `assets/languages/en.json` here and in the backend's
@@ -58,6 +65,8 @@ If the signing key ever changes, add the new SHA-1 and SHA-256 in Firebase (Proj
 
 1. Push to `main`. GitHub Actions builds a signed release APK in about 20 minutes.
 2. Put `[skip ci]` in the message of a commit that changes only notes, so it doesn't start a build.
+   GitHub finds that text anywhere in the newest commit's message, even inside a sentence, so never write
+   it in a commit that should build (26 Nov 2026: "Not marked [skip ci]" skipped the Phase 1 build).
 3. Get the APK:
    - **With git:** `git fetch origin apk && git show FETCH_HEAD:app-arm64-v8a-release.apk > PestRaksh.apk`.
      Use the arm64 file for any modern phone.
@@ -118,4 +127,5 @@ These change without a new app build:
 | `5fb719f` | India time: plain API times are India time, not UTC (Phase 1) |
 | `8f11e66` | Texts refresh at each start (Phase 1) |
 | `88d7ce3` | Booking date and arrival window at checkout; Pick Up switch only when offered; tests (Phase 1) |
-| next commit | This file: Phase 1 |
+| `a25c97a` | This file: Phase 1 |
+| next commits | Phase 2, part 2A: service cards; then this file |
