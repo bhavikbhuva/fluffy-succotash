@@ -6,10 +6,12 @@ import 'package:customer/commons/widgets/custom_app_bar.dart';
 import 'package:customer/commons/widgets/empty_state_widget.dart';
 import 'package:customer/core/localization/language_label_key.dart';
 import 'package:customer/core/theme/app_spacing.dart';
+import 'package:customer/features/orders/cubit/booking_visits_cubit.dart';
 import 'package:customer/features/orders/cubit/invoice_download_cubit.dart';
 import 'package:customer/features/orders/cubit/order_detail_cubit.dart';
 import 'package:customer/features/orders/cubit/order_status_update_cubit.dart';
 import 'package:customer/features/orders/models/order_model.dart';
+import 'package:customer/features/orders/widgets/booking_visits_card.dart';
 import 'package:customer/features/orders/widgets/order_detail_cards.dart';
 import 'package:customer/features/orders/widgets/order_detail_shared_widgets.dart';
 import 'package:customer/features/orders/widgets/order_detail_skeleton_loader.dart';
@@ -118,6 +120,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         BlocProvider<InvoiceDownloadCubit>(
           create: (_) => InvoiceDownloadCubit(),
         ),
+        // PestRaksh: the booking's visits and warranty, for its card below
+        // the items. Loaded once here, as the page opens.
+        BlocProvider<BookingVisitsCubit>(
+          create: (_) => BookingVisitsCubit(orderId: widget.orderId)..load(),
+        ),
       ],
       child: MultiBlocListener(
         listeners: [
@@ -193,9 +200,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   final items = order.items ?? [];
 
                   return RefreshIndicator(
-                    onRefresh: () => context
-                        .read<OrderDetailCubit>()
-                        .loadOrderDetail(widget.orderId),
+                    // PestRaksh: pulling down also reloads the visits card.
+                    onRefresh: () => Future.wait([
+                      context.read<OrderDetailCubit>().loadOrderDetail(
+                        widget.orderId,
+                      ),
+                      context.read<BookingVisitsCubit>().load(),
+                    ]),
                     child: ListView(
                       controller: _scrollController,
                       physics: const AlwaysScrollableScrollPhysics(),
@@ -247,6 +258,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           order: order,
                           highlightRating: widget.highlightRating,
                         ),
+                        // PestRaksh: visits and warranty after the items, as
+                        // on the website; it adds its own gap and is empty
+                        // when the booking has no plan or warranty.
+                        const BookingVisitsCard(),
                         AppSpacing.h12,
                         OrderDetailCustomerInfoCard(
                           order: order,

@@ -32,6 +32,10 @@ class ApiEndpoints {
   static const String orders = "orders";
   // PestRaksh: follow-up visits still to come (APP_PLAN Phase 3).
   static const String upcomingBookingVisits = "booking_visits/upcoming";
+  // PestRaksh: a booking's visits and warranty (APP_PLAN Phase 4).
+  static const String bookingVisits = "booking_visits";
+  static const String scheduleBookingVisit = "booking_visits/schedule";
+  static const String requestRevisit = "booking_visits/revisit";
   static const String ecomOrders = "ecom_orders";
   static const String updateOrderStatus = "update_order_status";
 

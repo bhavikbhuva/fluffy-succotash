@@ -53,7 +53,11 @@ class BookingSlotsCubit extends Cubit<BookingSlotsState> {
   /// Loads the list for [branchId]. The customer's choice is kept while it can
   /// still be booked; otherwise the first open date is picked, as on the
   /// website.
-  Future<void> load(int branchId) async {
+  ///
+  /// PestRaksh: [preferredDate] ("YYYY-MM-DD") is the date to start on when
+  /// nothing is chosen yet and it is open, so a follow-up visit's picker opens
+  /// on the visit's own date (booked, else due). Checkout doesn't pass it.
+  Future<void> load(int branchId, {String? preferredDate}) async {
     _branchId = branchId;
     emit(
       BookingSlotsState(
@@ -67,9 +71,11 @@ class BookingSlotsCubit extends Cubit<BookingSlotsState> {
       final dates = await _repository.fetch(branchId: branchId);
       if (isClosed || _branchId != branchId) return;
 
+      // PestRaksh: the preferred date only stands in for a missing choice.
+      final wanted = state.selectedDate ?? preferredDate;
       BookingSlotDate? keptDay;
       for (final d in dates) {
-        if (d.date == state.selectedDate && d.isAvailable) keptDay = d;
+        if (d.date == wanted && d.isAvailable) keptDay = d;
       }
       BookingSlotDate? day = keptDay;
       if (day == null) {

@@ -27,9 +27,14 @@ class CheckoutBookingSlotSection extends StatefulWidget {
     super.key,
     required this.cubit,
     required this.branchId,
+    this.showHeader = true,
   });
 
   final BookingSlotsCubit cubit;
+
+  /// PestRaksh: the "Service Schedule & Time Slot" heading; a sheet with its
+  /// own title (a follow-up visit's time) leaves it out.
+  final bool showHeader;
 
   /// The branch whose schedule applies (the cart's `pickup.branch_id`, as the
   /// website asks); 0 is the shared schedule.
@@ -68,8 +73,7 @@ class _CheckoutBookingSlotSectionState
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _Header(),
-              AppSpacing.h12,
+              if (widget.showHeader) ...[_Header(), AppSpacing.h12],
               ..._body(context, state),
             ],
           ),
@@ -304,7 +308,10 @@ class _DateChip extends StatelessWidget {
               LanguageLabelKeys.bookingDayClosed,
               fallback: 'Closed',
             )
-          : context.translate(LanguageLabelKeys.bookingDayFull, fallback: 'Full');
+          : context.translate(
+              LanguageLabelKeys.bookingDayFull,
+              fallback: 'Full',
+            );
     }
 
     return Opacity(

@@ -976,5 +976,22 @@ class LanguageLabelKeys {
   static const String visitBookedFor = "visit_booked_for";
   static const String visitDueAround = "visit_due_around";
   static const String booking = "booking";
+
+  // PestRaksh: visits and warranty on the booking page (APP_PLAN Phase 4).
+  static const String visitsAndWarranty = "visits_and_warranty";
+  static const String visitDone = "visit_done";
+  static const String visitSkipped = "visit_skipped";
+  static const String visitTodayCallUs = "visit_today_call_us";
+  static const String changeTime = "change_time";
+  static const String chooseATime = "choose_a_time";
+  static const String confirmTime = "confirm_time";
+  static const String warrantyUntil = "warranty_until";
+  static const String warrantyEndedOn = "warranty_ended_on";
+  static const String freeRevisitsLeft = "free_revisits_left";
+  static const String warrantyStartsAfterLastVisit =
+      "warranty_starts_after_last_visit";
+  static const String requestFreeRevisit = "request_free_revisit";
+  static const String revisitWhatHappened = "revisit_what_happened";
+  static const String sendRequest = "send_request";
   static const String technician = "technician";
 }

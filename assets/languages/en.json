@@ -872,5 +872,19 @@
   "warranty_revisit": "Warranty re-visit",
   "visit_booked_for": "Booked for",
   "visit_due_around": "Due around",
-  "booking": "Booking"
+  "booking": "Booking",
+  "visits_and_warranty": "Visits & warranty",
+  "visit_done": "Done",
+  "visit_skipped": "Not needed",
+  "visit_today_call_us": "This visit is today. Call us to change it.",
+  "change_time": "Change time",
+  "choose_a_time": "Choose a time",
+  "confirm_time": "Confirm time",
+  "warranty_until": "Warranty until",
+  "warranty_ended_on": "Warranty ended on",
+  "free_revisits_left": "free re-visits left",
+  "warranty_starts_after_last_visit": "Warranty starts after the last visit.",
+  "request_free_revisit": "Request a free re-visit",
+  "revisit_what_happened": "Tell us what you noticed (optional)",
+  "send_request": "Send request"
 }
