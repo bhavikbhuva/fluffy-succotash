@@ -50,7 +50,9 @@ README is the vendor's.
   `PestRaksh-phase3.apk`.
 - **Phase 4 built, 27 Nov 2026 (not pushed):** the booking page's "Visits & warranty" card: each visit's state,
   Choose a time / Change time (checkout's picker in a sheet), the warranty and Request a free re-visit
-  (`booking_visits`, `booking_visits/schedule`, `booking_visits/revisit`).
+  (`booking_visits`, `booking_visits/schedule`, `booking_visits/revisit`). Pushed 27 Nov (`66d8b5d`).
+- **Phase 5 built, 27 Nov 2026 (not pushed):** the package picker: a service with package plans asks for a
+  plan, then a size, on its page and in the package sheet (`models/package_plans_model.dart`).
 - **Owner, in the admin:** Zones → Bangalore → **Quick** only, which hides the Quick / Shop switch in the app.
 - **Texts as on the website** (26 Nov 2026): Refund Policy, Privacy Policy, Book Again, Continue with Google,
   and the My Bookings tabs Upcoming / Past. They are in `assets/languages/en.json` here and in the backend's
