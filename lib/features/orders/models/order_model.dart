@@ -167,6 +167,10 @@ class OrderData {
   String? orderNumber;
   String? deliveryBoyName;
   String? deliveryBoyMobile;
+  // PestRaksh: the booked visit, "2026-11-27" and "09:00 AM - 11:00 AM" (the
+  // window's label, frozen at booking).
+  String? bookingDate;
+  String? bookingTimeLabel;
   String? userName;
   String? orderStatusName;
   bool? productRating;
@@ -342,6 +346,8 @@ class OrderData {
     orderNumber = parseString(json['order_number']);
     deliveryBoyName = parseString(json['delivery_boy_name']);
     deliveryBoyMobile = parseString(json['delivery_boy_mobile']);
+    bookingDate = parseString(json['booking_date']);
+    bookingTimeLabel = parseString(json['booking_time_label']);
     userName = parseString(json['user_name']);
     orderStatusName = parseString(json['order_status_name']);
     productRating = parseBool(json['product_rating']);
@@ -431,6 +437,8 @@ class OrderData {
     data['order_number'] = orderNumber;
     data['delivery_boy_name'] = deliveryBoyName;
     data['delivery_boy_mobile'] = deliveryBoyMobile;
+    data['booking_date'] = bookingDate;
+    data['booking_time_label'] = bookingTimeLabel;
     data['user_name'] = userName;
     data['order_status_name'] = orderStatusName;
     data['product_rating'] = productRating;
@@ -458,6 +466,9 @@ class OrderItems {
   int? orderId;
   String? ordersId;
   String? productName;
+  // PestRaksh: a line stores the package it was booked as (product_name); the
+  // API adds the service it belongs to (empty when the service was deleted).
+  String? serviceName;
   int? productType;
   List<VariantAttributes>? variantAttributes;
   int? productVariantId;
@@ -555,6 +566,7 @@ class OrderItems {
     orderId = parseInt(json['order_id']);
     ordersId = parseString(json['orders_id']);
     productName = parseString(json['product_name']);
+    serviceName = parseString(json['service_name']);
     productType = parseInt(json['product_type']);
     final rawVariantAttributes = json['variant_attributes'];
     if (rawVariantAttributes is List) {
@@ -614,6 +626,7 @@ class OrderItems {
     data['order_id'] = orderId;
     data['orders_id'] = ordersId;
     data['product_name'] = productName;
+    data['service_name'] = serviceName;
     data['product_type'] = productType;
     if (variantAttributes != null) {
       data['variant_attributes'] = variantAttributes!

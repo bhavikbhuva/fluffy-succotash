@@ -864,5 +864,13 @@
   "service_not_available": "This service isn't available right now. Have a look at our other services.",
   "browse_services": "Browse Services",
   "remove_service_title": "Remove this service?",
-  "remove_service_message": "{name} will be taken out of this booking."
+  "remove_service_message": "{name} will be taken out of this booking.",
+  "appointment": "Appointment",
+  "technician": "Technician",
+  "follow_up_visits": "Follow-up visits",
+  "visit_n_of_m": "Visit {n} of {m}",
+  "warranty_revisit": "Warranty re-visit",
+  "visit_booked_for": "Booked for",
+  "visit_due_around": "Due around",
+  "booking": "Booking"
 }

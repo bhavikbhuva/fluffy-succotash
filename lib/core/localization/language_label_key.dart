@@ -967,4 +967,14 @@ class LanguageLabelKeys {
   // PestRaksh: cart and checkout (APP_PLAN Phase 2, part 2C).
   static const String removeServiceTitle = "remove_service_title";
   static const String removeServiceMessage = "remove_service_message";
+
+  // PestRaksh: My Bookings (APP_PLAN Phase 3).
+  static const String appointment = "appointment";
+  static const String followUpVisits = "follow_up_visits";
+  static const String visitNOfM = "visit_n_of_m";
+  static const String warrantyRevisit = "warranty_revisit";
+  static const String visitBookedFor = "visit_booked_for";
+  static const String visitDueAround = "visit_due_around";
+  static const String booking = "booking";
+  static const String technician = "technician";
 }

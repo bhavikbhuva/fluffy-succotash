@@ -1,10 +1,5 @@
 import 'package:customer/commons/cubit/base_pagination_cubit.dart';
 import 'package:customer/commons/utils/pagination_scroll_controller.dart';
-import 'package:customer/commons/widgets/app_button.dart';
-import 'package:customer/commons/widgets/app_date_range_picker.dart';
-import 'package:customer/commons/widgets/app_svg_icon.dart';
-import 'package:customer/commons/widgets/app_text.dart';
-import 'package:customer/commons/widgets/date_range_filter_field.dart';
 import 'package:customer/core/constants/assets_constants.dart';
 import 'package:customer/commons/widgets/app_snack_bar.dart';
 import 'package:customer/commons/widgets/custom_app_bar.dart';
@@ -18,27 +13,25 @@ import 'package:customer/core/localization/language_label_key.dart';
 import 'package:customer/features/orders/widgets/order_list_skeleton_loader.dart';
 import 'package:customer/core/routes/order_detail_args.dart';
 import 'package:customer/core/routes/route_names.dart';
-import 'package:customer/core/theme/app_spacing.dart';
 import 'package:customer/features/cart/cubit/guest_cart_sync_cubit.dart';
 import 'package:customer/features/orders/cubit/completed_ecommerce_order_cubit.dart';
 import 'package:customer/features/orders/cubit/completed_order_cubit.dart';
 import 'package:customer/features/orders/cubit/ongoing_ecommerce_order_cubit.dart';
 import 'package:customer/features/orders/cubit/ongoing_order_cubit.dart';
+import 'package:customer/features/orders/cubit/upcoming_visits_cubit.dart';
 import 'package:customer/features/orders/models/ecommerce_order_model.dart';
 import 'package:customer/features/orders/models/order_model.dart';
 import 'package:customer/features/orders/widgets/ecommerce_order_card.dart';
 import 'package:customer/features/orders/widgets/order_card.dart';
+import 'package:customer/features/orders/widgets/upcoming_visits_section.dart';
 import 'package:customer/features/products/models/addon_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 import 'package:customer/core/theme/app_radius.dart';
 import 'package:customer/utils/extensions/context_extensions.dart';
 import 'package:customer/utils/extensions/localization_extensions.dart';
 import 'package:customer/utils/extensions/size_extensions.dart';
-import 'package:customer/commons/animations/slide_animation.dart';
 import 'package:customer/commons/widgets/app_scaffold.dart';
-import 'package:customer/utils/show_app_bottom_sheet.dart';
 import 'package:customer/core/theme/app_decorations.dart';
 import 'package:customer/core/constants/theme_constants.dart';
 
@@ -76,11 +69,9 @@ void _handleReorder(BuildContext context, OrderData order) {
   final items = [...plain, ...withAddons];
   if (items.isEmpty) return;
 
-  final isQuick = order.channel == AppConstants.quick;
-  context.read<GuestCartSyncCubit>().bulkAddItems(
-    quickItems: isQuick ? items : const [],
-    ecommerceItems: isQuick ? const [] : items,
-  );
+  // PestRaksh: every booking is a Quick booking, so Book Again always fills
+  // the Quick cart, even if an old order came back without its channel.
+  context.read<GuestCartSyncCubit>().bulkAddItems(quickItems: items);
 }
 
 /// Re-adds a single ecommerce order item to the cart.
@@ -103,11 +94,11 @@ void _handleReorderEcommerceItem(
   );
 }
 
+// PestRaksh: the Quick twin of this check is gone. Book Again shows on every
+// booking whatever the active channel, as on the website's My Bookings.
 /// Reorder button visibility follows the store's globally active channel
 /// (set via the home-screen quick/ecommerce toggle), not the tab currently
 /// viewed — so it only appears on the listing matching the live channel.
-bool get _showQuickReorder =>
-    SettingsHiveBox.instance.channel == AppConstants.quick;
 bool get _showEcommerceReorder =>
     SettingsHiveBox.instance.channel == AppConstants.ecommerce;
 
@@ -126,96 +117,33 @@ class _OrdersScreenState extends State<OrdersScreen> {
       .read<OngoingOrderCubit>();
   late final CompletedOrderCubit _completedCubit = context
       .read<CompletedOrderCubit>();
-  late final OngoingEcommerceOrderCubit _ongoingEcommerceCubit = context
-      .read<OngoingEcommerceOrderCubit>();
-  late final CompletedEcommerceOrderCubit _completedEcommerceCubit = context
-      .read<CompletedEcommerceOrderCubit>();
-  String _channel = SettingsHiveBox.instance.channel;
-  DateTimeRange? _dateRange;
+  // PestRaksh: every booking is on the Quick channel, so the screen always
+  // lists Quick bookings. It no longer follows the active channel (a customer
+  // on Shop mode saw an empty list) and has no filter, like the website.
   final _appBarShadow = ValueNotifier<bool>(false);
-  // Cached — Hive returns a new listenable per call, so the same instance
-  // is needed to remove the listener.
-  final _channelListenable = SettingsHiveBox.instance.channelListenable;
-
-  bool get _isEcommerce => _channel == AppConstants.ecommerce;
-
-  String? get _startDateParam => _dateRange == null
-      ? null
-      : DateFormat('yyyy-MM-dd').format(_dateRange!.start);
-  String? get _endDateParam => _dateRange == null
-      ? null
-      : DateFormat('yyyy-MM-dd').format(_dateRange!.end);
+  // PestRaksh: follow-up visits for the top of Upcoming. Only this screen
+  // shows them, so it owns the cubit and closes it.
+  final _visitsCubit = UpcomingVisitsCubit();
 
   @override
   void initState() {
     super.initState();
-    _reloadCurrentChannel();
-    _channelListenable.addListener(_onChannelChanged);
+    _reload();
   }
 
   @override
   void dispose() {
-    _channelListenable.removeListener(_onChannelChanged);
     _appBarShadow.dispose();
+    _visitsCubit.close();
     super.dispose();
   }
 
-  /// Home toggle / zone change switched the active channel — reset the
-  /// order-type filter to it so history shows that channel's orders.
-  void _onChannelChanged() {
-    final channel = SettingsHiveBox.instance.channel;
-    if (!mounted || channel == _channel) return;
-    setState(() => _channel = channel);
-    _reloadCurrentChannel();
-  }
-
-  void _reloadCurrentChannel() {
+  void _reload() {
     if (!AuthHiveBox.instance.isLoggedIn) return;
-    if (_isEcommerce) {
-      _ongoingEcommerceCubit.applyFilters(
-        EcommerceOrderFilter(
-          startDate: _startDateParam,
-          endDate: _endDateParam,
-        ),
-      );
-      _completedEcommerceCubit.applyFilters(
-        EcommerceOrderFilter(
-          startDate: _startDateParam,
-          endDate: _endDateParam,
-        ),
-      );
-    } else {
-      _ongoingCubit.applyFilters(
-        OrderFilter(
-          channel: _channel,
-          startDate: _startDateParam,
-          endDate: _endDateParam,
-        ),
-      );
-      _completedCubit.applyFilters(
-        OrderFilter(
-          channel: _channel,
-          startDate: _startDateParam,
-          endDate: _endDateParam,
-        ),
-      );
-    }
-  }
-
-  void _applyFilters(String channel, DateTimeRange? dateRange) {
-    setState(() {
-      _channel = channel;
-      _dateRange = dateRange;
-    });
-    _reloadCurrentChannel();
-  }
-
-  void _clearFilters() {
-    setState(() {
-      _channel = SettingsHiveBox.instance.channel;
-      _dateRange = null;
-    });
-    _reloadCurrentChannel();
+    const filter = OrderFilter(channel: AppConstants.quick);
+    _ongoingCubit.applyFilters(filter);
+    _completedCubit.applyFilters(filter);
+    _visitsCubit.load();
   }
 
   @override
@@ -245,226 +173,37 @@ class _OrdersScreenState extends State<OrdersScreen> {
             title: context.translate(LanguageLabelKeys.myOrders),
             showBackButton: false,
             shadowListenable: _appBarShadow,
-            actions: [
-              _OrderChannelFilter(
-                selected: _channel,
-                dateRange: _dateRange,
-                onApply: _applyFilters,
-                onClear: _clearFilters,
-              ),
-            ],
+            // PestRaksh: no filter button (Quick/Shop and date range); the
+            // website's My Bookings has none.
             bottom: const _PillTabBar(),
           ),
+          // PestRaksh: always the Quick lists; the Shop lists are unused.
           body: TabBarView(
             physics: const NeverScrollableScrollPhysics(),
-            children: _isEcommerce
-                ? [
-                    MultiBlocProvider(
-                      providers: [
-                        BlocProvider.value(value: _ongoingEcommerceCubit),
-                        BlocProvider.value(value: _completedEcommerceCubit),
-                      ],
-                      child: _OngoingEcommerceOrderList(
-                        onScrolledChanged: (v) => _appBarShadow.value = v,
-                      ),
-                    ),
-                    MultiBlocProvider(
-                      providers: [
-                        BlocProvider.value(value: _ongoingEcommerceCubit),
-                        BlocProvider.value(value: _completedEcommerceCubit),
-                      ],
-                      child: _CompletedEcommerceOrderList(
-                        onScrolledChanged: (v) => _appBarShadow.value = v,
-                      ),
-                    ),
-                  ]
-                : [
-                    MultiBlocProvider(
-                      providers: [
-                        BlocProvider.value(value: _ongoingCubit),
-                        BlocProvider.value(value: _completedCubit),
-                      ],
-                      child: _OngoingOrderList(
-                        onScrolledChanged: (v) => _appBarShadow.value = v,
-                      ),
-                    ),
-                    MultiBlocProvider(
-                      providers: [
-                        BlocProvider.value(value: _ongoingCubit),
-                        BlocProvider.value(value: _completedCubit),
-                      ],
-                      child: _CompletedOrderList(
-                        onScrolledChanged: (v) => _appBarShadow.value = v,
-                      ),
-                    ),
-                  ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _OrderChannelFilter extends StatelessWidget {
-  final String selected;
-  final DateTimeRange? dateRange;
-  final void Function(String channel, DateTimeRange? dateRange) onApply;
-  final VoidCallback onClear;
-
-  const _OrderChannelFilter({
-    required this.selected,
-    required this.dateRange,
-    required this.onApply,
-    required this.onClear,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      icon: AppSvgIcon(
-        AssetsConstants.filterIcon,
-        size: ThemeConstants.iconM,
-        color: context.cs.onSurfaceVariant,
-      ),
-      onPressed: () => _showFilterSheet(context),
-    );
-  }
-
-  Future<void> _showFilterSheet(BuildContext context) {
-    return showAppBottomSheet<void>(
-      context,
-      title: context.translate(LanguageLabelKeys.filterOrders),
-      padding: const EdgeInsetsDirectional.fromSTEB(
-        ThemeConstants.paddingXL,
-        ThemeConstants.paddingM,
-        ThemeConstants.paddingXL,
-        ThemeConstants.paddingXXL,
-      ),
-      builder: (_) => _OrderChannelFilterSheet(
-        selected: selected,
-        dateRange: dateRange,
-        onApply: onApply,
-        onClear: onClear,
-      ),
-    );
-  }
-}
-
-class _OrderChannelFilterSheet extends StatefulWidget {
-  final String selected;
-  final DateTimeRange? dateRange;
-  final void Function(String channel, DateTimeRange? dateRange) onApply;
-  final VoidCallback onClear;
-
-  const _OrderChannelFilterSheet({
-    required this.selected,
-    required this.dateRange,
-    required this.onApply,
-    required this.onClear,
-  });
-
-  @override
-  State<_OrderChannelFilterSheet> createState() =>
-      _OrderChannelFilterSheetState();
-}
-
-class _OrderChannelFilterSheetState extends State<_OrderChannelFilterSheet> {
-  late String _tempChannel = widget.selected;
-  late DateTimeRange? _tempDateRange = widget.dateRange;
-
-  String? get _tempStartDate => _tempDateRange == null
-      ? null
-      : DateFormat('yyyy-MM-dd').format(_tempDateRange!.start);
-  String? get _tempEndDate => _tempDateRange == null
-      ? null
-      : DateFormat('yyyy-MM-dd').format(_tempDateRange!.end);
-
-  @override
-  Widget build(BuildContext context) {
-    final options = <String, String>{
-      AppConstants.quick: context.translate(LanguageLabelKeys.filterQuick),
-      AppConstants.ecommerce: context.translate(
-        LanguageLabelKeys.filterEcommerce,
-      ),
-    };
-    final entries = options.entries.toList();
-
-    return SlideAnimationList(
-      crossAxisAlignment: .start,
-      children: [
-        AppText(
-          context.translate(LanguageLabelKeys.orderType),
-          style: context.tt.labelLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: context.cs.onSurfaceVariant,
-          ),
-        ),
-        AppSpacing.h10,
-        Row(
-          children: [
-            for (final entry in entries) ...[
-              _OrderTypeChip(
-                label: entry.value,
-                selected: entry.key == _tempChannel,
-                onTap: () => setState(() => _tempChannel = entry.key),
+            children: [
+              MultiBlocProvider(
+                providers: [
+                  BlocProvider.value(value: _ongoingCubit),
+                  BlocProvider.value(value: _completedCubit),
+                  BlocProvider.value(value: _visitsCubit),
+                ],
+                child: _OngoingOrderList(
+                  onScrolledChanged: (v) => _appBarShadow.value = v,
+                ),
               ),
-              if (entry.key != entries.last.key) AppSpacing.w8,
+              MultiBlocProvider(
+                providers: [
+                  BlocProvider.value(value: _ongoingCubit),
+                  BlocProvider.value(value: _completedCubit),
+                ],
+                child: _CompletedOrderList(
+                  onScrolledChanged: (v) => _appBarShadow.value = v,
+                ),
+              ),
             ],
-          ],
-        ),
-        AppSpacing.h20,
-        AppText(
-          context.translate(LanguageLabelKeys.dateRange),
-          style: context.tt.labelLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: context.cs.onSurfaceVariant,
           ),
         ),
-        AppSpacing.h10,
-        DateRangeFilterField(
-          startDate: _tempStartDate,
-          endDate: _tempEndDate,
-          onTap: () async {
-            final now = DateTime.now();
-            final range = await showAppDateRangePicker(
-              context: context,
-              firstDate: DateTime(now.year - 5),
-              lastDate: now,
-              initialDateRange: _tempDateRange,
-            );
-            if (range == null) return;
-            setState(() => _tempDateRange = range);
-          },
-          onClear: () => setState(() => _tempDateRange = null),
-        ),
-        AppSpacing.h28,
-        Row(
-          children: [
-            Expanded(
-              child: AppButton(
-                label: context.translate(LanguageLabelKeys.clear),
-                variant: AppButtonVariant.outline,
-                height: context.heightFraction(0.05),
-                onPressed: () {
-                  AppNavigator.pop(context);
-                  widget.onClear();
-                },
-              ),
-            ),
-            AppSpacing.w12,
-            Expanded(
-              child: AppButton(
-                label: context.translate(LanguageLabelKeys.apply),
-                height: context.heightFraction(0.05),
-                onPressed: () {
-                  AppNavigator.pop(context);
-                  widget.onApply(_tempChannel, _tempDateRange);
-                },
-              ),
-            ),
-          ],
-        ),
-      ],
+      ),
     );
   }
 }
@@ -540,6 +279,15 @@ class _PaginatedOrderList<T> extends StatefulWidget {
   final String emptySubtitle;
   final ValueChanged<bool>? onScrolledChanged;
 
+  /// PestRaksh: shown first in the list, scrolling with it (Upcoming's
+  /// follow-up visits). When given, it also stands in for the empty state, so
+  /// pass it only when it has something to show.
+  final Widget? header;
+
+  /// PestRaksh: also run on pull-to-refresh and retry, with the cubit's own
+  /// refresh (Upcoming reloads its follow-up visits).
+  final Future<void> Function()? onRefresh;
+
   const _PaginatedOrderList({
     super.key,
     required this.cubit,
@@ -547,6 +295,8 @@ class _PaginatedOrderList<T> extends StatefulWidget {
     required this.emptyTitle,
     required this.emptySubtitle,
     this.onScrolledChanged,
+    this.header,
+    this.onRefresh,
   });
 
   @override
@@ -590,8 +340,20 @@ class _PaginatedOrderListState<T> extends State<_PaginatedOrderList<T>> {
     super.dispose();
   }
 
+  // PestRaksh: the list and the header's own data refresh together.
+  Future<void> _refresh() async {
+    await Future.wait([widget.cubit.refresh(), ?widget.onRefresh?.call()]);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final header = widget.header;
+    final listPadding = EdgeInsetsDirectional.fromSTEB(
+      ThemeConstants.paddingL,
+      ThemeConstants.paddingS,
+      ThemeConstants.paddingL,
+      ThemeConstants.paddingL + context.bottomSafePadding,
+    );
     return BlocBuilder<BasePaginationCubit<T>, PaginationState<T>>(
       bloc: widget.cubit,
       builder: (context, state) {
@@ -604,14 +366,26 @@ class _PaginatedOrderListState<T> extends State<_PaginatedOrderList<T>> {
             imagePath: AssetsConstants.noOrderFound,
             title: state.message,
             subtitle: context.translate(LanguageLabelKeys.pullToRefresh),
-            onRetry: () => widget.cubit.refresh(),
+            onRetry: _refresh,
           );
         }
 
         if (state is PaginationLoaded<T>) {
           if (state.data.isEmpty) {
+            // PestRaksh: with no bookings but a header (follow-up visits),
+            // the header shows instead of "no upcoming bookings".
+            if (header != null) {
+              return RefreshIndicator(
+                onRefresh: _refresh,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: listPadding,
+                  children: [header],
+                ),
+              );
+            }
             return RefreshIndicator(
-              onRefresh: () => widget.cubit.refresh(),
+              onRefresh: _refresh,
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 children: [
@@ -625,20 +399,22 @@ class _PaginatedOrderListState<T> extends State<_PaginatedOrderList<T>> {
             );
           }
 
+          // PestRaksh: the header, when given, is the first row.
+          final headerRows = header == null ? 0 : 1;
           return RefreshIndicator(
-            onRefresh: () => widget.cubit.refresh(),
+            onRefresh: _refresh,
             child: _pager.attach(
               ListView.builder(
                 physics: const AlwaysScrollableScrollPhysics(),
                 controller: _pager.controller,
-                padding: EdgeInsetsDirectional.fromSTEB(
-                  ThemeConstants.paddingL,
-                  ThemeConstants.paddingS,
-                  ThemeConstants.paddingL,
-                  ThemeConstants.paddingL + context.bottomSafePadding,
-                ),
-                itemCount: state.data.length + (state.isFetchingMore ? 1 : 0),
-                itemBuilder: (context, index) {
+                padding: listPadding,
+                itemCount:
+                    headerRows +
+                    state.data.length +
+                    (state.isFetchingMore ? 1 : 0),
+                itemBuilder: (context, row) {
+                  if (header != null && row == 0) return header;
+                  final index = row - headerRows;
                   if (index == state.data.length) {
                     return PaginatedListFooter(
                       isLoadingMore: state.isFetchingMore,
@@ -692,9 +468,17 @@ class _OngoingOrderList extends StatelessWidget {
   Widget build(BuildContext context) {
     final cubit = context.read<OngoingOrderCubit>();
     final completedCubit = context.read<CompletedOrderCubit>();
+    // PestRaksh: follow-up visits head the Upcoming list. The section goes in
+    // only when there are visits, so with none the usual empty state shows.
+    final visitsCubit = context.read<UpcomingVisitsCubit>();
+    final hasVisits = context.select(
+      (UpcomingVisitsCubit c) => c.state.isNotEmpty,
+    );
     return _PaginatedOrderList<OrderData>(
       cubit: cubit,
       onScrolledChanged: onScrolledChanged,
+      header: hasVisits ? const UpcomingVisitsSection() : null,
+      onRefresh: visitsCubit.load,
       emptyTitle: context.translate(LanguageLabelKeys.noOngoingOrders),
       emptySubtitle: context.translate(LanguageLabelKeys.noOrdersYet),
       itemBuilder: (context, order) => OrderCard(
@@ -712,13 +496,18 @@ class _OngoingOrderList extends StatelessWidget {
             cubit.removeOrder(result.id?.toString() ?? '');
             completedCubit.addOrder(result);
           }
+          // PestRaksh: the booking's page may have changed its visits.
+          visitsCubit.load();
         },
         onTrack: () => AppNavigator.pushNamed(
           context,
           RouteNames.orderTracking,
           arguments: order,
         ),
-        onReorder: _showQuickReorder
+        // PestRaksh: Book Again fills the Quick cart, and checkout shows the
+        // cart of the active channel, so the button shows only in Quick mode
+        // (once the zone is Quick only, always).
+        onReorder: SettingsHiveBox.instance.channel == AppConstants.quick
             ? () => _handleReorder(context, order)
             : null,
       ),
@@ -754,7 +543,10 @@ class _CompletedOrderList extends StatelessWidget {
             cubit.patchOrder(result);
           }
         },
-        onReorder: _showQuickReorder
+        // PestRaksh: Book Again fills the Quick cart, and checkout shows the
+        // cart of the active channel, so the button shows only in Quick mode
+        // (once the zone is Quick only, always).
+        onReorder: SettingsHiveBox.instance.channel == AppConstants.quick
             ? () => _handleReorder(context, order)
             : null,
       ),
@@ -764,9 +556,13 @@ class _CompletedOrderList extends StatelessWidget {
 
 // ── Ecommerce: Ongoing ──────────────────────────────────────────────────────
 
+// PestRaksh: kept from the vendor but unused; My Bookings lists only Quick
+// bookings.
+// ignore: unused_element
 class _OngoingEcommerceOrderList extends StatelessWidget {
   final ValueChanged<bool>? onScrolledChanged;
 
+  // ignore: unused_element_parameter
   const _OngoingEcommerceOrderList({this.onScrolledChanged});
 
   @override
@@ -804,9 +600,13 @@ class _OngoingEcommerceOrderList extends StatelessWidget {
 
 // ── Ecommerce: Completed ────────────────────────────────────────────────────
 
+// PestRaksh: kept from the vendor but unused; My Bookings lists only Quick
+// bookings.
+// ignore: unused_element
 class _CompletedEcommerceOrderList extends StatelessWidget {
   final ValueChanged<bool>? onScrolledChanged;
 
+  // ignore: unused_element_parameter
   const _CompletedEcommerceOrderList({this.onScrolledChanged});
 
   @override
@@ -835,50 +635,6 @@ class _CompletedEcommerceOrderList extends StatelessWidget {
         onReorder: _showEcommerceReorder
             ? () => _handleReorderEcommerceItem(context, item)
             : null,
-      ),
-    );
-  }
-}
-
-class _OrderTypeChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _OrderTypeChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsetsDirectional.symmetric(
-          horizontal: ThemeConstants.paddingL,
-          vertical: ThemeConstants.paddingS,
-        ),
-        decoration: AppDecorations.box(
-          color: selected ? context.cs.primary : context.cs.surfaceContainerLow,
-          borderRadius: AppRadius.r20,
-          border: Border.all(
-            color: selected
-                ? context.cs.primary
-                : context.cs.outline.withValues(alpha: 0.4),
-          ),
-        ),
-        child: AppText(
-          label,
-          style: context.tt.labelMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: selected
-                ? context.cs.onPrimary
-                : context.cs.onSurfaceVariant,
-          ),
-        ),
       ),
     );
   }

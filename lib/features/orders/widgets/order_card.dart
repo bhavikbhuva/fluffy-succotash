@@ -6,6 +6,7 @@ import 'package:customer/core/localization/language_label_key.dart';
 import 'package:customer/core/theme/app_decorations.dart';
 import 'package:customer/features/cart/models/delivery_type.dart';
 import 'package:customer/features/orders/models/order_model.dart';
+import 'package:customer/features/orders/utils/booking_text.dart';
 import 'package:customer/features/orders/utils/order_payment_utils.dart';
 import 'package:customer/utils/app_date_formatter.dart';
 import 'package:customer/utils/order_status_labels.dart';
@@ -46,6 +47,13 @@ class OrderCard extends StatelessWidget {
     final displayItems = items.take(2).toList();
     final extraCount = items.length - displayItems.length;
     final hasDate = order.date.hasValue;
+    // PestRaksh: a booking card says when the visit is and who comes, as the
+    // website's booking cards do. Each line shows only when it has a value.
+    final appointment = bookingAppointmentText(
+      order.bookingDate,
+      order.bookingTimeLabel,
+    );
+    final technician = (order.deliveryBoyName ?? '').trim();
     // Track button: quick orders only (ecommerce has no live rider to
     // track) and only while the order is still active — hidden once
     // delivered/cancelled/returned. Cancel now lives on the order detail
@@ -148,6 +156,24 @@ class OrderCard extends StatelessWidget {
                 ),
             ],
 
+            // PestRaksh: the visit's date and time window, then the
+            // technician, under the services.
+            if (appointment.isNotEmpty || technician.isNotEmpty) ...[
+              AppSpacing.h4,
+              if (appointment.isNotEmpty)
+                _InfoLine(
+                  icon: Icons.calendar_today_outlined,
+                  label: '${context.translate(LanguageLabelKeys.appointment)}:',
+                  value: appointment,
+                ),
+              if (technician.isNotEmpty)
+                _InfoLine(
+                  icon: Icons.person_outline,
+                  label: '${context.translate(LanguageLabelKeys.technician)}:',
+                  value: technician,
+                ),
+            ],
+
             // ── Divider ──
             Padding(
               padding: const EdgeInsetsDirectional.symmetric(
@@ -246,7 +272,11 @@ class _ItemRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = item.productName ?? '';
+    // PestRaksh: the service is the title and the package it was booked as
+    // goes under it, as on the website. "1 x" is dropped: a booking is one
+    // visit, so only a real count (2 or more) is shown.
+    final name = bookingLineTitle(item);
+    final package = bookingLinePackage(item);
     final variant =
         VariantAttributesFormatter.format(item.variantAttributes) ?? "";
     final qty = item.quantity ?? 0;
@@ -267,16 +297,26 @@ class _ItemRow extends StatelessWidget {
                 Text.rich(
                   ProductTypeIcon.nameSpan(
                     productType: item.productType,
-                    name: '$qty x $name',
+                    name: qty > 1 ? '$qty x $name' : name,
                     size: ThemeConstants.iconXXS,
                   ),
                   style: context.tt.bodySmall?.copyWith(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
-                  maxLines: 1,
+                  // PestRaksh: long service names get a second line.
+                  maxLines: 2,
                   overflow: .ellipsis,
                 ),
+                if (package.isNotEmpty)
+                  AppText(
+                    package,
+                    style: context.tt.labelSmall?.copyWith(
+                      color: context.cs.onSurfaceVariant,
+                    ),
+                    maxLines: 1,
+                    overflow: .ellipsis,
+                  ),
                 if (variant.isNotEmpty)
                   AppText(
                     variant,
@@ -305,6 +345,56 @@ class _ItemRow extends StatelessWidget {
             style: context.tt.bodySmall?.copyWith(
               fontSize: 13,
               fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// PestRaksh: one small grey line with an icon, a label and a value, for the
+// appointment and the technician.
+class _InfoLine extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _InfoLine({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final style = context.tt.labelSmall?.copyWith(
+      color: context.cs.onSurfaceVariant,
+    );
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(top: ThemeConstants.paddingXS),
+      child: Row(
+        crossAxisAlignment: .start,
+        spacing: ThemeConstants.spaceXS,
+        children: [
+          Icon(icon, size: ThemeConstants.iconXXS, color: style?.color),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(text: '$label '),
+                  TextSpan(
+                    text: value,
+                    style: TextStyle(
+                      color: context.cs.onSurface,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              style: style,
+              maxLines: 2,
+              overflow: .ellipsis,
             ),
           ),
         ],
