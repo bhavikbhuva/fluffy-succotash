@@ -43,7 +43,9 @@ README is the vendor's.
   as `PestRaksh-phase2.apk`. Details in the backend's `docs/APP_PLAN.md`.
 - **Phase 3, parts 3A and 3B built, 27 Nov 2026 (not pushed):** My Bookings without the Quick / Shop and date
   filter; cards with the service over the package, the appointment and the technician; Book Again in Quick
-  mode; follow-up visits at the top of Upcoming (`booking_visits/upcoming`). Part 3C, the booking page, next.
+  mode; follow-up visits at the top of Upcoming (`booking_visits/upcoming`).
+- **Phase 3, part 3C built, 27 Nov 2026 (not pushed):** the booking page titles each line by its service with
+  the package under it, shows an Appointment and Technician card, and the status without "Booking" before it.
 - **Owner, in the admin:** Zones → Bangalore → **Quick** only, which hides the Quick / Shop switch in the app.
 - **Texts as on the website** (26 Nov 2026): Refund Policy, Privacy Policy, Book Again, Continue with Google,
   and the My Bookings tabs Upcoming / Past. They are in `assets/languages/en.json` here and in the backend's
