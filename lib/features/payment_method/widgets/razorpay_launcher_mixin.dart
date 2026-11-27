@@ -4,6 +4,8 @@ import 'package:customer/features/payment_method/cubit/payment_cubit.dart';
 import 'package:customer/features/payment_method/models/payment_args.dart';
 import 'package:customer/features/payment_method/models/payment_method_item.dart';
 import 'package:customer/features/payment_method/models/payment_methods_model.dart';
+import 'package:customer/features/payment_method/utils/payment_result.dart';
+import 'package:customer/features/payment_method/widgets/payment_result_info.dart';
 import 'package:customer/utils/extensions/localization_extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -25,9 +27,10 @@ mixin RazorpayLauncherMixin<T extends StatefulWidget> on State<T> {
 
   void disposeRazorpay() => razorpay.clear();
 
-  void _onRazorpaySuccess(PaymentSuccessResponse response) {
+  Future<void> _onRazorpaySuccess(PaymentSuccessResponse response) async {
     if (!mounted) return;
-    context.read<PaymentCubit>().addTransaction(
+    final cubit = context.read<PaymentCubit>();
+    await cubit.addTransaction(
       orderId: launcherArgs.orderId,
       orderItemId: launcherArgs.orderItemId,
       paymentType: PaymentGatewayType.razorpay.apiValue,
@@ -35,6 +38,8 @@ mixin RazorpayLauncherMixin<T extends StatefulWidget> on State<T> {
       success: true,
       extra: launcherArgs.extra,
     );
+    // PestRaksh: "being confirmed" / "moved to the wallet" as information.
+    if (mounted) showPaymentResultInfo(context, cubit.state);
   }
 
   void _onRazorpayError(PaymentFailureResponse response) {
@@ -46,6 +51,10 @@ mixin RazorpayLauncherMixin<T extends StatefulWidget> on State<T> {
       txnId: response.error?['metadata']?['payment_id']?.toString() ?? '',
       success: false,
       extra: launcherArgs.extra,
+      // PestRaksh: only closing the window deletes the booking (as on the
+      // website). After a failed payment it stays: a retry, or a payment
+      // that still goes through, must not land on a deleted booking.
+      deleteOrderOnFailure: razorpayErrorDeletesBooking(response.code),
     );
   }
 
@@ -70,8 +79,7 @@ mixin RazorpayLauncherMixin<T extends StatefulWidget> on State<T> {
     // Backend-created Razorpay order ("order_…") from initiate_transaction.
     // Without it the payment stays "authorized" (never auto-captured) and
     // backend verification of add_transaction fails.
-    final razorpayOrderId =
-        (sdkState.razorpayOrderId?.isNotEmpty ?? false)
+    final razorpayOrderId = (sdkState.razorpayOrderId?.isNotEmpty ?? false)
         ? sdkState.razorpayOrderId!
         : (sdkState.transactionId ?? '');
     if (razorpayOrderId.isEmpty) {

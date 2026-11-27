@@ -9,6 +9,7 @@ import 'package:customer/features/cart/models/delivery_type.dart';
 import 'package:customer/features/payment_method/cubit/payment_cubit.dart';
 import 'package:customer/features/payment_method/models/payment_form_payload.dart';
 import 'package:customer/features/payment_method/models/payment_method_item.dart';
+import 'package:customer/features/payment_method/utils/payment_result.dart';
 import 'package:customer/utils/extensions/localization_extensions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -278,7 +279,10 @@ class _WebViewPaymentScreenState extends State<WebViewPaymentScreen> {
           context.translate(LanguageLabelKeys.phonepePaymentCancelled),
         );
       default:
-        cubit.deleteOrder(widget.args.orderId);
+        // PestRaksh: a status that may still go through keeps the booking.
+        if (!isPendingPaymentStatus(status)) {
+          cubit.deleteOrder(widget.args.orderId);
+        }
         cubit.onWebViewFailed(
           '${context.translate(LanguageLabelKeys.phonepePaymentStatus)} $status.',
         );
@@ -328,6 +332,13 @@ class _WebViewPaymentScreenState extends State<WebViewPaymentScreen> {
         widget.args.orderId,
         orderItemId: widget.args.orderItemId,
       );
+    } else if (isPendingPaymentStatus(status)) {
+      // PestRaksh: still processing at the gateway (UPI, for example): keep
+      // the booking; the webhook settles it, or the server cancels it unpaid.
+      AppNavigator.pop(context);
+      cubit.onWebViewFailed(
+        context.translate(LanguageLabelKeys.paymentPendingCheckLater),
+      );
     } else {
       AppNavigator.pop(context);
       cubit.deleteOrder(widget.args.orderId);
@@ -347,7 +358,8 @@ class _WebViewPaymentScreenState extends State<WebViewPaymentScreen> {
           widget.args.orderId,
           orderItemId: widget.args.orderItemId,
         );
-      case 'pending':
+      // PestRaksh: "processing" too, not only "pending".
+      case final s when isPendingPaymentStatus(s):
         // Still processing at PayU — order kept, the webhook settles it.
         AppNavigator.pop(context);
         cubit.onWebViewFailed(
@@ -373,7 +385,8 @@ class _WebViewPaymentScreenState extends State<WebViewPaymentScreen> {
       );
     } else {
       // 'pending' is kept, not deleted — same reasoning as PhonePe PENDING.
-      if (segment.trim().toLowerCase() != 'pending') {
+      // PestRaksh: "processing" too.
+      if (!isPendingPaymentStatus(segment)) {
         cubit.deleteOrder(widget.args.orderId);
       }
       cubit.onWebViewFailed(

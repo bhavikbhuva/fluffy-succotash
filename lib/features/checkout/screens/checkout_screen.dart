@@ -874,6 +874,14 @@ class _CheckoutScreenState extends State<CheckoutScreen>
       }
     } else if (state is PaymentSuccess) {
       _goToOrderSuccess(orderId: state.orderId, orderItemId: state.orderItemId);
+    } else if (state is PaymentInfo) {
+      // PestRaksh: a paid booking whose payment is being confirmed or went to
+      // the wallet: information, not an error (APP_PLAN Phase 8).
+      AppSnackBar.show(
+        context: context,
+        message: state.message,
+        type: SnackBarType.info,
+      );
     } else if (state is PaymentError) {
       AppSnackBar.show(
         context: context,

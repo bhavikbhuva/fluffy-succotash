@@ -10,6 +10,7 @@ import 'package:customer/features/payment_method/models/enums/transaction_type.d
 import 'package:customer/features/payment_method/models/payment_form_payload.dart';
 import 'package:customer/features/payment_method/models/payment_method_item.dart';
 import 'package:customer/features/payment_method/repositories/payment_repository.dart';
+import 'package:customer/features/payment_method/utils/payment_result.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:customer/core/localization/services/localization_service.dart';
 import 'package:customer/core/localization/language_label_key.dart';
@@ -66,10 +67,24 @@ final class PaymentSdkReady extends PaymentState {
 }
 
 final class PaymentSuccess extends PaymentState {
-  PaymentSuccess(this.orderId, {this.orderItemId = ''});
+  PaymentSuccess(this.orderId, {this.orderItemId = '', this.infoMessage});
 
   final String orderId;
   final String orderItemId;
+
+  /// PestRaksh: the server's note when the payment is still being confirmed
+  /// (`PAYMENT_PROCESSING`). The booking stands, so the customer goes on to it
+  /// like after a payment, and sees this as information.
+  final String? infoMessage;
+}
+
+/// PestRaksh: the payment reached the server after the booking was cancelled,
+/// and the money went to the wallet (`PAYMENT_TO_WALLET`). Not a failure:
+/// shown as information, and nothing asks for payment again.
+final class PaymentInfo extends PaymentState {
+  PaymentInfo(this.message);
+
+  final String message;
 }
 
 final class PaymentError extends PaymentState {
@@ -210,8 +225,16 @@ class PaymentCubit extends Cubit<PaymentState> {
         );
       }
     } on ApiException catch (e) {
-      await deleteOrder(orderId);
-      _emit(PaymentError(e.message));
+      // PestRaksh: "being confirmed" or "moved to the wallet" means money was
+      // paid: never delete the booking for them.
+      if (paymentResultOfError(e) == .other) {
+        await deleteOrder(orderId);
+        _emit(PaymentError(e.message));
+      } else {
+        // PestRaksh: paid (being confirmed, or moved to the wallet): say so as
+        // information, not as an error.
+        _emit(PaymentInfo(e.message));
+      }
     } catch (_) {
       await deleteOrder(orderId);
       _emit(
@@ -235,12 +258,17 @@ class PaymentCubit extends Cubit<PaymentState> {
     required bool success,
     Map<String, dynamic>? extra,
     bool callApi = true,
+    // PestRaksh: false keeps the booking after a failed payment (Razorpay,
+    // when the customer did not close the window): they can try again, and
+    // the server cancels it if it stays unpaid.
+    bool deleteOrderOnFailure = true,
   }) async {
     _emit(PaymentProcessing());
+    // PestRaksh: outside the try, so the ApiException branch can read it.
+    final isWallet =
+        TransactionType.fromRaw(extra?[ApiParameters.type]) ==
+        TransactionType.wallet;
     try {
-      final isWallet =
-          TransactionType.fromRaw(extra?[ApiParameters.type]) ==
-          TransactionType.wallet;
       final statusValue = success ? 'success' : 'failed';
       final os = Platform.operatingSystem;
       final deviceType = os[0].toUpperCase() + os.substring(1);
@@ -274,7 +302,7 @@ class PaymentCubit extends Cubit<PaymentState> {
         await _refreshUserDetails();
         _emit(PaymentSuccess(orderId, orderItemId: orderItemId));
       } else {
-        if (!isWallet) await deleteOrder(orderId);
+        if (!isWallet && deleteOrderOnFailure) await deleteOrder(orderId);
         _emit(
           PaymentError(
             LocalizationService.instance.translate(
@@ -284,7 +312,33 @@ class PaymentCubit extends Cubit<PaymentState> {
         );
       }
     } on ApiException catch (e) {
-      _emit(PaymentError(e.message));
+      // PestRaksh: two answers to a booking's payment are not failures.
+      // Being confirmed: the booking stands, go on to it. Moved to the
+      // wallet: say so and refresh the balance. Neither asks to pay again.
+      final result = isWallet ? PaymentResult.other : paymentResultOfError(e);
+      switch (result) {
+        case .processing:
+          await _refreshUserDetails();
+          _emit(
+            PaymentSuccess(
+              orderId,
+              orderItemId: orderItemId,
+              infoMessage: _resultMessage(
+                e,
+                LanguageLabelKeys.paymentPendingCheckLater,
+              ),
+            ),
+          );
+        case .toWallet:
+          await _refreshUserDetails();
+          _emit(
+            PaymentInfo(
+              _resultMessage(e, LanguageLabelKeys.moneyAddedToWallet),
+            ),
+          );
+        case .other:
+          _emit(PaymentError(e.message));
+      }
     } catch (_) {
       _emit(
         PaymentError(
@@ -294,6 +348,23 @@ class PaymentCubit extends Cubit<PaymentState> {
         ),
       );
     }
+  }
+
+  /// PestRaksh: the server's own words for [PaymentResult.processing] and
+  /// [PaymentResult.toWallet]; the app has no texts of its own for them yet.
+  /// [fallbackKey] when the server sent only the code, or nothing.
+  String _resultMessage(ApiException e, String fallbackKey) {
+    // Not e.message: with no message from the server it is "something went
+    // wrong".
+    final message =
+        (e.responseData == null
+                ? e.message
+                : e.responseData!['message']?.toString() ?? '')
+            .trim();
+    if (message.isEmpty || paymentResultOf(message: message) != .other) {
+      return LocalizationService.instance.translate(fallbackKey);
+    }
+    return message;
   }
 
   static const _phonePePollInterval = Duration(seconds: 3);

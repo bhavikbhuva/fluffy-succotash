@@ -6,6 +6,7 @@ import 'package:customer/features/payment_method/cubit/payment_cubit.dart';
 import 'package:customer/features/payment_method/models/payment_args.dart';
 import 'package:customer/features/payment_method/models/payment_method_item.dart';
 import 'package:customer/features/payment_method/models/payment_methods_model.dart';
+import 'package:customer/features/payment_method/widgets/payment_result_info.dart';
 import 'package:customer/utils/extensions/localization_extensions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -88,7 +89,8 @@ mixin PaystackLauncherMixin<T extends StatefulWidget> on State<T> {
 
       if (!mounted) return;
       if (response.status) {
-        context.read<PaymentCubit>().addTransaction(
+        final cubit = context.read<PaymentCubit>();
+        await cubit.addTransaction(
           orderId: launcherArgs.orderId,
           orderItemId: launcherArgs.orderItemId,
           paymentType: PaymentGatewayType.paystack.apiValue,
@@ -98,6 +100,8 @@ mixin PaystackLauncherMixin<T extends StatefulWidget> on State<T> {
           success: true,
           extra: launcherArgs.extra,
         );
+        // PestRaksh: "being confirmed" / "moved to the wallet" as information.
+        if (mounted) showPaymentResultInfo(context, cubit.state);
       } else {
         AppSnackBar.show(
           context: context,
