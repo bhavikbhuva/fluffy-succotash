@@ -107,8 +107,12 @@ jobs:
           { flutter --version; flutter pub get; flutter build apk --$MODE --split-per-abi; } 2>&1 | tee build.log
           ls -la build/app/outputs/flutter-apk/ | tee -a build.log
 
+      # PestRaksh: each publishing step runs even when another one failed, and the report lists each
+      # outcome (27 Nov 2026: a run built fine but the apk branch kept the previous APK, with no trace).
       - name: Upload APK artifact
-        if: steps.build.outcome == 'success'
+        id: artifact
+        if: always() && steps.build.outcome == 'success'
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: pestraksh-${{ steps.build.outputs.mode }}-apk
@@ -116,7 +120,9 @@ jobs:
           retention-days: 30
 
       - name: Publish the "test-build" release
-        if: steps.build.outcome == 'success'
+        id: release
+        if: always() && steps.build.outcome == 'success'
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -127,7 +133,9 @@ jobs:
             --notes "Built from ${{ github.sha }}. Install on an Android phone to test. ${{ steps.firebase.outputs.real == '1' && 'Release build with our Firebase project.' || 'Debug build with a stand-in Firebase file: it compiles but stops at start, do not install.' }}"
 
       - name: Put the APKs on the apk branch (readable with git)
-        if: steps.build.outcome == 'success'
+        id: apkbranch
+        if: always() && steps.build.outcome == 'success'
+        continue-on-error: true
         env:
           TOKEN: ${{ github.token }}
         run: |
@@ -155,6 +163,9 @@ jobs:
             echo
             echo "- commit: ${{ github.sha }}"
             echo "- result: ${{ steps.build.outcome }}"
+            echo "- artifact: ${{ steps.artifact.outcome }}"
+            echo "- release: ${{ steps.release.outcome }}"
+            echo "- apk branch: ${{ steps.apkbranch.outcome }}"
             echo "- mode: ${{ steps.build.outputs.mode }}"
             echo "- firebase file real: ${{ steps.firebase.outputs.real }}"
             echo "- run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

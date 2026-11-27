@@ -956,4 +956,11 @@ class LanguageLabelKeys {
   // cheapest package's price; "Added" replaces the quantity stepper.
   static const String fromPrice = "from_price";
   static const String added = "added";
+
+  // PestRaksh: the service page (APP_PLAN Phase 2, part 2B).
+  static const String packageLabel = "package_label";
+  static const String warrantyBadge = "warranty_badge";
+  static const String warrantyBadgeWithRevisit = "warranty_badge_with_revisit";
+  static const String serviceNotAvailable = "service_not_available";
+  static const String browseServices = "browse_services";
 }

@@ -1,9 +1,8 @@
 import 'package:customer/commons/cubit/api_error_guard.dart';
+import 'package:customer/core/api/api_exception.dart';
 import 'package:customer/features/products/models/product_detail_model.dart';
 import 'package:customer/features/products/repositories/product_repository.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:customer/core/localization/services/localization_service.dart';
-import 'package:customer/core/localization/language_label_key.dart';
 
 sealed class ProductDetailState {}
 
@@ -57,6 +56,11 @@ final class ProductDetailError extends ProductDetailState {
   ProductDetailError(this.message);
 }
 
+// PestRaksh: the service was deleted (an old favourite or link). Kept apart
+// from ProductDetailError so the screen shows "Service not found" with a way
+// to other services instead of a Retry that can never help.
+final class ProductDetailNotFound extends ProductDetailState {}
+
 class ProductDetailCubit extends Cubit<ProductDetailState>
     with ApiErrorGuard<ProductDetailState> {
   final ProductRepository _repository;
@@ -71,15 +75,23 @@ class ProductDetailCubit extends Cubit<ProductDetailState>
   }) async {
     emit(ProductDetailLoading());
     await guard(() async {
-      final result = await _repository.getProductDetail(productId: productId);
+      final ProductDetailModel result;
+      try {
+        result = await _repository.getProductDetail(productId: productId);
+      } on ApiException catch (e) {
+        // PestRaksh: an unknown id or slug comes back as HTTP 200 with
+        // `status: 0, status_code: 404`, which the client turns into
+        // messageStatusCode '404'. Network and server errors never carry it,
+        // so they still reach ProductDetailError and its Retry.
+        if (e.messageStatusCode == '404') {
+          emit(ProductDetailNotFound());
+          return;
+        }
+        rethrow;
+      }
+      // PestRaksh: a success with no service in it means the same thing.
       if (result.data == null) {
-        emit(
-          ProductDetailError(
-            LocalizationService.instance.translate(
-              LanguageLabelKeys.productNotFound,
-            ),
-          ),
-        );
+        emit(ProductDetailNotFound());
         return;
       }
       final product = result.data!;

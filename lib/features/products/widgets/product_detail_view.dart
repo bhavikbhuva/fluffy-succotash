@@ -289,11 +289,18 @@ class _ProductDetailViewState extends State<ProductDetailView>
     final displayDesc = widget.product.description ?? '';
 
     final activeVariant = variants.isNotEmpty ? variants[safeIndex] : null;
+    // PestRaksh: the title is the service ("Cockroach Control"), as on the
+    // website; the package name only stands in when the service has none.
     final displayName =
-        (activeVariant?.name?.isNotEmpty == true
-            ? activeVariant!.name
-            : widget.product.name) ??
+        (widget.product.name?.isNotEmpty == true
+            ? widget.product.name
+            : activeVariant?.name) ??
         '';
+    // PestRaksh: the selected package goes on its own "Package: …" line
+    // under the title, skipped when it is empty or already the title.
+    final packageName = activeVariant?.name ?? '';
+    final showPackageLine =
+        packageName.isNotEmpty && packageName != displayName;
     final variantImages =
         activeVariant?.images
             ?.map((i) => i.imageUrl ?? '')
@@ -724,6 +731,30 @@ class _ProductDetailViewState extends State<ProductDetailView>
                           height: 1.3,
                         ),
                       ),
+                      // PestRaksh: "Package: 1 BHK (Single Service)", as on
+                      // the website; it changes when another package is picked.
+                      if (showPackageLine) ...[
+                        AppSpacing.h4,
+                        Text.rich(
+                          TextSpan(
+                            text:
+                                '${context.translate(LanguageLabelKeys.packageLabel)} ',
+                            style: context.tt.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w500,
+                              color: context.cs.onSurfaceVariant,
+                            ),
+                            children: [
+                              TextSpan(
+                                text: packageName,
+                                style: context.tt.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: context.cs.onSurface,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       if (displayShortDesc.isNotEmpty) ...[
                         AppSpacing.h6,
                         AppText(
@@ -914,7 +945,11 @@ class _ProductDetailViewState extends State<ProductDetailView>
                       ),
                     ],
                   ),
-                  child: ProductDetailPoliciesSection(product: widget.product),
+                  child: ProductDetailPoliciesSection(
+                    product: widget.product,
+                    // PestRaksh: its warranty shows in the first tile.
+                    selectedVariant: activeVariant,
+                  ),
                 ),
 
                 // ── Pincode delivery check ───────────────────────────────────

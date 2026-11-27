@@ -248,6 +248,27 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                         .loadProductDetail(widget.productId.toString()),
                   );
                 }
+                // PestRaksh: a deleted service (old favourite or link) gets
+                // a "Service not found" page that leads to the other
+                // services; a Retry or "pull to refresh" could never help.
+                // Replacing this route keeps Back going where the customer
+                // came from.
+                if (state is ProductDetailNotFound) {
+                  return EmptyStateWidget(
+                    imagePath: AssetsConstants.noSearchFound,
+                    title: context.translate(LanguageLabelKeys.productNotFound),
+                    subtitle: context.translate(
+                      LanguageLabelKeys.serviceNotAvailable,
+                    ),
+                    retryLabel: LanguageLabelKeys.browseServices,
+                    // PestRaksh: back to the main screen (its tabs list the
+                    // services). The bare categories route has no back arrow
+                    // and no tabs.
+                    onRetry: () => AppNavigator.of(
+                      context,
+                    ).popUntil((route) => route.isFirst),
+                  );
+                }
                 if (state is ProductDetailLoaded) {
                   return ProductDetailView(
                     product: state.product,

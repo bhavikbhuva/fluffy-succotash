@@ -383,6 +383,11 @@ class Variants {
   List<Attributes>? attributes;
   List<CustomSections>? customSections;
 
+  // PestRaksh: the package's warranty, set in the admin (0 = none).
+  int warrantyDays = 0;
+  int freeRevisits = 0;
+  int visitsTotal = 0;
+
   Variants({
     this.id,
     this.name,
@@ -400,6 +405,9 @@ class Variants {
     this.images,
     this.attributes,
     this.customSections,
+    this.warrantyDays = 0,
+    this.freeRevisits = 0,
+    this.visitsTotal = 0,
   });
 
   bool get isNotified => isNotifyRequested == 1;
@@ -418,6 +426,10 @@ class Variants {
     fewQuantityLeft = parseBool(json['few_quantity_left']);
     cartCount = parseInt(json['cart_count']);
     isNotifyRequested = parseInt(json['is_notify_requested']) ?? 0;
+    // PestRaksh: warranty fields; older servers don't send them, so 0.
+    warrantyDays = parseInt(json['warranty_days']) ?? 0;
+    freeRevisits = parseInt(json['free_revisits']) ?? 0;
+    visitsTotal = parseInt(json['visits_total']) ?? 0;
     final rawImages = json['images'];
     if (rawImages is List) {
       images = rawImages
@@ -453,6 +465,10 @@ class Variants {
     data['few_quantity_left'] = fewQuantityLeft;
     data['cart_count'] = cartCount;
     data['is_notify_requested'] = isNotifyRequested;
+    // PestRaksh: warranty fields.
+    data['warranty_days'] = warrantyDays;
+    data['free_revisits'] = freeRevisits;
+    data['visits_total'] = visitsTotal;
     if (images != null) {
       data['images'] = images!.map((v) => v.toJson()).toList();
     }

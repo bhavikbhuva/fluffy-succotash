@@ -3,6 +3,7 @@ import 'package:customer/core/constants/assets_constants.dart';
 import 'package:customer/core/localization/language_label_key.dart';
 import 'package:customer/core/theme/app_spacing.dart';
 import 'package:customer/features/products/models/product_detail_model.dart';
+import 'package:customer/features/products/utils/warranty_label.dart';
 import 'package:customer/utils/extensions/context_extensions.dart';
 import 'package:customer/utils/extensions/localization_extensions.dart';
 import 'package:flutter/material.dart';
@@ -122,7 +123,14 @@ class ProductDetailInfoTable extends StatelessWidget {
 class ProductDetailPoliciesSection extends StatelessWidget {
   final ProductDetailDataModel product;
 
-  const ProductDetailPoliciesSection({super.key, required this.product});
+  // PestRaksh: the package chosen on the page, for its warranty tile.
+  final Variants? selectedVariant;
+
+  const ProductDetailPoliciesSection({
+    super.key,
+    required this.product,
+    this.selectedVariant,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -132,21 +140,38 @@ class ProductDetailPoliciesSection extends StatelessWidget {
     final codOn = on(product.codAllowed);
     final cancelOn = on(product.cancelableStatus);
     final days = product.returnDays ?? 0;
+    // PestRaksh: a package with a warranty shows it in place of the vendor's
+    // "returns" tile, as the website does; returns don't apply to a service.
+    final warranty = warrantyLabel(
+      context.translate,
+      days: selectedVariant?.warrantyDays,
+      freeRevisits: selectedVariant?.freeRevisits,
+    );
 
     final policies =
         <({String icon, String title, String subtitle, bool available})>[
-          (
-            icon: AssetsConstants.returnOrderIcon,
-            title: returnOn
-                ? (days > 0
-                      ? _daysText(context, days)
-                      : context.translate(LanguageLabelKeys.easyReturns))
-                : context.translate(LanguageLabelKeys.returnNotAvailable),
-            subtitle: returnOn
-                ? context.translate(LanguageLabelKeys.returnsAvailable)
-                : context.translate(LanguageLabelKeys.returnUnavailable),
-            available: returnOn,
-          ),
+          if (warranty != null)
+            // PestRaksh: the app has no warranty icon, so a check mark; no
+            // text fits a subtitle, so there is none.
+            (
+              icon: AssetsConstants.checkCircleIcon,
+              title: warranty,
+              subtitle: '',
+              available: true,
+            )
+          else
+            (
+              icon: AssetsConstants.returnOrderIcon,
+              title: returnOn
+                  ? (days > 0
+                        ? _daysText(context, days)
+                        : context.translate(LanguageLabelKeys.easyReturns))
+                  : context.translate(LanguageLabelKeys.returnNotAvailable),
+              subtitle: returnOn
+                  ? context.translate(LanguageLabelKeys.returnsAvailable)
+                  : context.translate(LanguageLabelKeys.returnUnavailable),
+              available: returnOn,
+            ),
           (
             icon: AssetsConstants.codOrderIcon,
             title: codOn
@@ -235,20 +260,26 @@ class _PolicyItem extends StatelessWidget {
                 : context.cs.onSurfaceVariant,
           ),
           textAlign: .center,
-          maxLines: 1,
+          // PestRaksh: a tile without a subtitle (the warranty) lets its
+          // title use the second line, so "30-day warranty, free re-visit"
+          // isn't cut off.
+          maxLines: p.subtitle.isEmpty ? 2 : 1,
           overflow: .ellipsis,
         ),
-        AppSpacing.h1,
-        AppText(
-          p.subtitle,
-          style: context.tt.labelSmall?.copyWith(
-            fontSize: 10,
-            color: context.cs.onSurfaceVariant,
+        // PestRaksh: hide an empty subtitle.
+        if (p.subtitle.isNotEmpty) ...[
+          AppSpacing.h1,
+          AppText(
+            p.subtitle,
+            style: context.tt.labelSmall?.copyWith(
+              fontSize: 10,
+              color: context.cs.onSurfaceVariant,
+            ),
+            textAlign: .center,
+            maxLines: 1,
+            overflow: .ellipsis,
           ),
-          textAlign: .center,
-          maxLines: 1,
-          overflow: .ellipsis,
-        ),
+        ],
       ],
     );
   }

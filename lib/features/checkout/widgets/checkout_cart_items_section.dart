@@ -244,6 +244,9 @@ class CheckoutCartItemTile extends StatelessWidget {
       arguments: ProductDetailArgs(
         productId: productId,
         imageUrl: item.images?.coverUrl,
+        // PestRaksh: the cart line carries its package (`variantId`), so the
+        // page opens on the booked package, not the first one.
+        productList: [item],
       ),
     );
   }
