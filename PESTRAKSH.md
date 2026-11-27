@@ -41,6 +41,9 @@ README is the vendor's.
   (with a confirm) instead of the − 1 + stepper; an applied promo is checked again when the subtotal
   changes. Pushed 27 Nov (`399ded0`): its APK, with Phase 1 and all of Phase 2, is on the owner's Desktop
   as `PestRaksh-phase2.apk`. Details in the backend's `docs/APP_PLAN.md`.
+- **Phase 3, parts 3A and 3B built, 27 Nov 2026 (not pushed):** My Bookings without the Quick / Shop and date
+  filter; cards with the service over the package, the appointment and the technician; Book Again in Quick
+  mode; follow-up visits at the top of Upcoming (`booking_visits/upcoming`). Part 3C, the booking page, next.
 - **Owner, in the admin:** Zones → Bangalore → **Quick** only, which hides the Quick / Shop switch in the app.
 - **Texts as on the website** (26 Nov 2026): Refund Policy, Privacy Policy, Book Again, Continue with Google,
   and the My Bookings tabs Upcoming / Past. They are in `assets/languages/en.json` here and in the backend's
