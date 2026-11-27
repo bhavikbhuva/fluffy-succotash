@@ -231,6 +231,15 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
       });
       // PestRaksh: a wider view on the city centre, to find the home from.
       moveCamera(point, zoom: isFar ? 12 : 15, isGoogle: _isGoogle);
+      // PestRaksh (review): the pin is on the city centre, not the home: say
+      // so, or a far-away customer may confirm the centre as the address.
+      if (isFar) {
+        AppSnackBar.show(
+          context: context,
+          message: context.translate(LanguageLabelKeys.movePinToHome),
+          type: SnackBarType.info,
+        );
+      }
       context.read<GeocodingCubit>().geocode(
         latitude: point.latitude.toString(),
         longitude: point.longitude.toString(),

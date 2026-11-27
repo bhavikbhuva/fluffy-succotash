@@ -75,8 +75,14 @@ Future<bool> applySingleZoneLocation(BuildContext context) async {
     final country = _defaultCountry(await _countries(countriesCubit));
     if (country?.id == null) return false;
 
+    // PestRaksh (review): every network step has its own short time limit, so
+    // a stalled connection gets the normal screen within seconds, not a
+    // spinner for minutes.
     final zones =
-        (await repository.getZones(countryId: country!.id.toString())).data ??
+        (await repository
+                .getZones(countryId: country!.id.toString())
+                .timeout(_step))
+            .data ??
         const [];
     if (zones.length != 1) return false;
     final zone = zones.single;
@@ -93,10 +99,9 @@ Future<bool> applySingleZoneLocation(BuildContext context) async {
     // Same check as the picker's confirm button: only a point the Zone API
     // calls deliverable may become the session location.
     final zoneCubit = SessionZoneCubit(repository: repository);
-    await zoneCubit.checkZone(
-      latitude: centre.latitude,
-      longitude: centre.longitude,
-    );
+    await zoneCubit
+        .checkZone(latitude: centre.latitude, longitude: centre.longitude)
+        .timeout(_step, onTimeout: () {});
     final zoneState = zoneCubit.state;
     await zoneCubit.close();
     if (zoneState is! SessionZoneAvailable) return false;
@@ -112,11 +117,13 @@ Future<bool> applySingleZoneLocation(BuildContext context) async {
     var pincode = '';
     try {
       final r = GeocodingResult.fromJson(
-        await repository.getGeocodingByLatLng(
-          latitude: centre.latitude.toString(),
-          longitude: centre.longitude.toString(),
-          channel: zoneState.activeChannel,
-        ),
+        await repository
+            .getGeocodingByLatLng(
+              latitude: centre.latitude.toString(),
+              longitude: centre.longitude.toString(),
+              channel: zoneState.activeChannel,
+            )
+            .timeout(const Duration(seconds: 5)),
       );
       label = r.city.isNotEmpty ? r.city : selected;
       address = r.formattedAddress;
@@ -144,6 +151,9 @@ Future<bool> applySingleZoneLocation(BuildContext context) async {
   }
 }
 
+/// The time limit of one network step of the single-zone start.
+const _step = Duration(seconds: 8);
+
 /// The app-wide countries list, waiting for it if it is still loading.
 /// Null when it failed.
 Future<List<CountriesData>?> _countries(CountriesCubit cubit) async {
@@ -151,7 +161,7 @@ Future<List<CountriesData>?> _countries(CountriesCubit cubit) async {
   if (state is CountriesInitial || state is CountriesLoading) {
     state = await cubit.stream
         .firstWhere((s) => s is CountriesLoaded || s is CountriesError)
-        .timeout(const Duration(seconds: 20));
+        .timeout(_step);
   }
   return state is CountriesLoaded ? state.countries : null;
 }

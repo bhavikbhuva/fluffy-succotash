@@ -1003,4 +1003,5 @@ class LanguageLabelKeys {
   // PestRaksh: the address form (APP_PLAN Phase 6).
   static const String invalidPincode = "invalid_pincode";
   static const String cityStateCountry = "city_state_country";
+  static const String movePinToHome = "move_pin_to_home";
 }
