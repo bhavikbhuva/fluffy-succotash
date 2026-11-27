@@ -36,8 +36,10 @@ README is the vendor's.
 - **Phase 2, part 2B built, 27 Nov 2026 (not pushed):** the service page's title is the service, with
   "Package: …" under it; a warranty tile when the package has one (`utils/warranty_label.dart`); "Service not
   found" for a deleted service (`ProductDetailNotFound`). The build workflow's publishing steps now run
-  independently and are each reported in `ci-status`. Part 2C (cart and checkout) is next. Details in the
-  backend's `docs/APP_PLAN.md`.
+  independently and are each reported in `ci-status`. Pushed 27 Nov (`9f861dc`).
+- **Phase 2, part 2C built, 27 Nov 2026 (not pushed):** each cart row names the booked package; Remove
+  (with a confirm) instead of the − 1 + stepper; an applied promo is checked again when the subtotal
+  changes. Details in the backend's `docs/APP_PLAN.md`.
 - **Owner, in the admin:** Zones → Bangalore → **Quick** only, which hides the Quick / Shop switch in the app.
 - **Texts as on the website** (26 Nov 2026): Refund Policy, Privacy Policy, Book Again, Continue with Google,
   and the My Bookings tabs Upcoming / Past. They are in `assets/languages/en.json` here and in the backend's
