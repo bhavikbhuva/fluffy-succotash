@@ -271,12 +271,10 @@ class _ProductDetailViewState extends State<ProductDetailView>
     final variants = widget.product.variants ?? const <Variants>[];
     final index = variants.indexWhere((x) => identical(x, v));
     if (index < 0 || index == widget.selectedVariantIndex) return;
-    final cubit = context.read<ProductDetailCubit>();
-    for (final a in v.attributes ?? <Attributes>[]) {
-      if (a.attributeId == null || a.attributeValueId == null) continue;
-      cubit.selectAxisValue(a.attributeId!, a.attributeValueId!);
-    }
-    cubit.selectVariant(index);
+    // PestRaksh: one step. Selecting each attribute first emitted once per
+    // attribute, and every emit reloads Similar services; with plans shown
+    // the attribute chips are hidden, so only the index matters.
+    context.read<ProductDetailCubit>().selectVariant(index);
   }
 
   /// PestRaksh: the website's PackagePlanPicker: plan cards (only with two or
@@ -418,7 +416,13 @@ class _ProductDetailViewState extends State<ProductDetailView>
       onTap: active
           ? null
           : () => _selectPackage(
-              samePackageSizeIn(plan, selected, (v) => v.sizeLabel ?? ''),
+              samePackageSizeIn(
+                plan,
+                selected,
+                (v) => v.sizeLabel ?? '',
+                // PestRaksh: prefer a size that can be booked.
+                isAvailable: (v) => v.inStock != false,
+              ),
             ),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),

@@ -501,4 +501,42 @@ void main() {
       expect(samePackageSizeIn(villa, twoBhk, _sizeLabel).id, 156);
     });
   });
+
+  group('samePackageSizeIn with isAvailable', () {
+    test('keeps the size when it can be booked, else the first bookable', () {
+      final sanitization = _group(_sanitizationPlans, _sanitizationVariants)!;
+      final apartment = sanitization.plans[0];
+      final twoBhk = apartment.variants[1];
+      // 2 BHK sold out: the apartment plan's first bookable size instead.
+      expect(
+        samePackageSizeIn(
+          apartment,
+          twoBhk,
+          _sizeLabel,
+          isAvailable: (v) => v.id != twoBhk.id,
+        ).id,
+        151,
+      );
+      // 1 BHK sold out too: the next one.
+      expect(
+        samePackageSizeIn(
+          apartment,
+          twoBhk,
+          _sizeLabel,
+          isAvailable: (v) => v.id != twoBhk.id && v.id != 151,
+        ).id,
+        153,
+      );
+      // Nothing bookable: the same size, as without the check.
+      expect(
+        samePackageSizeIn(
+          apartment,
+          twoBhk,
+          _sizeLabel,
+          isAvailable: (_) => false,
+        ).id,
+        twoBhk.id,
+      );
+    });
+  });
 }

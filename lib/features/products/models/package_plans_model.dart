@@ -92,17 +92,29 @@ PackagePlanGroups<T>? groupPackagePlans<T>(
 }
 
 /// Switching plan keeps the size the customer had (2 BHK stays 2 BHK) where
-/// the new plan has it; otherwise its first size.
+/// the new plan has it; otherwise its first size. With [isAvailable], a size
+/// that can be booked is preferred: the same size when it can, else the
+/// plan's first bookable one.
 T samePackageSizeIn<T>(
   PackagePlan<T> plan,
   T? selected,
-  String Function(T) sizeLabel,
-) {
+  String Function(T) sizeLabel, {
+  bool Function(T)? isAvailable,
+}) {
+  final ok = isAvailable ?? (T _) => true;
+  T? same;
   if (selected != null) {
     final want = sizeLabel(selected).trim().toLowerCase();
     for (final v in plan.variants) {
-      if (sizeLabel(v).trim().toLowerCase() == want) return v;
+      if (sizeLabel(v).trim().toLowerCase() == want) {
+        same = v;
+        break;
+      }
     }
   }
-  return plan.variants.first;
+  if (same != null && ok(same)) return same;
+  for (final v in plan.variants) {
+    if (ok(v)) return v;
+  }
+  return same ?? plan.variants.first;
 }
