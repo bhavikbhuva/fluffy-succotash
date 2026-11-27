@@ -249,6 +249,12 @@ class ProductDetailBottomBar extends StatelessWidget {
                         ),
                   onFirstAdd: () => onFirstAddToCart?.call(),
                   onLastRemove: () {},
+                  // PestRaksh: one package per service; another one already
+                  // in the cart blocks ADD, with the message. Not for add-on
+                  // products, which keep the vendor's behaviour.
+                  servicePackageIds: addons != null
+                      ? const []
+                      : [for (final p in variants) p.id?.toString() ?? ''],
                 );
                 if (!isStoreClosedQuick) return cartButton;
                 return GestureDetector(

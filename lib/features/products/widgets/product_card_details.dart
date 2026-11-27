@@ -4,6 +4,7 @@ import 'package:customer/core/constants/assets_constants.dart';
 import 'package:customer/utils/extensions/num_extensions.dart';
 import 'package:customer/core/localization/language_label_key.dart';
 import 'package:customer/features/products/models/product_model.dart';
+import 'package:customer/features/products/utils/package_price.dart';
 import 'package:customer/features/products/widgets/delivery_time_icon.dart';
 import 'package:customer/utils/extensions/context_extensions.dart';
 import 'package:customer/utils/extensions/localization_extensions.dart';
@@ -29,6 +30,10 @@ class ProductCardDetails extends StatelessWidget {
   final int stockVal;
   final bool isOutOfStock;
 
+  /// PestRaksh: "From" before the price, for a service whose packages do not
+  /// all cost the same (the price shown is then the cheapest package's).
+  final bool showFrom;
+
   const ProductCardDetails({
     super.key,
     required this.product,
@@ -44,6 +49,7 @@ class ProductCardDetails extends StatelessWidget {
     required this.isUnlimited,
     required this.stockVal,
     required this.isOutOfStock,
+    this.showFrom = false,
   });
 
   /// Delivery time row — hidden for out-of-stock products.
@@ -108,9 +114,14 @@ class ProductCardDetails extends StatelessWidget {
     final isCompact = cardWidth < compactWidthThreshold;
     final variants = product.variants ?? [];
     final activeV = variants.isNotEmpty ? variants.first : null;
-    final rawPrice = (activeV?.price ?? product.price ?? 0).toDouble();
+    // PestRaksh: the discount line is estimated from the package whose price
+    // the card shows (the cheapest bookable one, see ProductCard), so the
+    // estimate still matches what is drawn. "From" stands on the price line
+    // and adds no height. Stock below stays on the first package, as the card.
+    final priceV = cheapestPackage(variants) ?? activeV;
+    final rawPrice = (priceV?.price ?? product.price ?? 0).toDouble();
     final rawDiscounted =
-        (activeV?.discountedPrice ?? product.discountedPrice ?? 0).toDouble();
+        (priceV?.discountedPrice ?? product.discountedPrice ?? 0).toDouble();
     final hasDiscount = rawDiscounted > 0 && rawDiscounted < rawPrice;
     final avgRating = (product.rating ?? 0).toDouble();
     final ratingCount = product.ratingCount ?? 0;
@@ -222,6 +233,25 @@ class ProductCardDetails extends StatelessWidget {
             crossAxisAlignment: .baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
+              // PestRaksh: "From" before the price when the packages differ,
+              // small and grey as on the website. On a narrow card it is
+              // "From" that shortens; the price itself stays whole, so the
+              // row cannot overflow.
+              if (showFrom) ...[
+                Flexible(
+                  child: AppText(
+                    context.translate(LanguageLabelKeys.fromPrice),
+                    style: context.tt.labelMedium?.copyWith(
+                      fontSize: strikeFontSize,
+                      color: subColor,
+                      fontWeight: FontWeight.w400,
+                    ),
+                    maxLines: 1,
+                    overflow: .ellipsis,
+                  ),
+                ),
+                SizedBox(width: isCompact ? 3 : 4),
+              ],
               AppText(
                 '${product.currency}${displayPrice.formatPrice(decimalPoint)}',
                 style: context.tt.headlineMedium?.copyWith(
@@ -230,7 +260,11 @@ class ProductCardDetails extends StatelessWidget {
                   color: textColor,
                 ),
               ),
-              if (hasDiscount) ...[
+              // PestRaksh: a compact card has no room for "From", the price
+              // and the old price (it cut "From" to "Fr…"), so with "From"
+              // the old price is left out there; "N% OFF" below still shows
+              // the saving.
+              if (hasDiscount && !(showFrom && isCompact)) ...[
                 SizedBox(width: isCompact ? 4 : 6),
                 Flexible(
                   child: AppText(

@@ -224,6 +224,14 @@ class ProductVariantSheet extends StatelessWidget {
                             onLastRemove: () {},
                             onLimitReached: () => AppNavigator.pop(context),
                             snackBarContext: parentContext,
+                            // PestRaksh: one package per service; another
+                            // one already in the cart blocks ADD here, with
+                            // the message (shown once the sheet closes).
+                            servicePackageIds: [
+                              for (final p
+                                  in product.variants ?? activeVariants)
+                                p.id?.toString() ?? '',
+                            ],
                           ),
                         ],
                       ),

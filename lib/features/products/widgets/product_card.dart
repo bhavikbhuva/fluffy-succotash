@@ -11,6 +11,7 @@ import 'package:customer/features/cart/cubit/cart_cubit.dart';
 import 'package:customer/commons/widgets/cart_button.dart';
 import 'package:customer/commons/widgets/notify_me_button.dart';
 import 'package:customer/features/products/models/product_model.dart';
+import 'package:customer/features/products/utils/package_price.dart';
 import 'package:customer/features/products/widgets/product_card_details.dart';
 import 'package:customer/features/products/widgets/product_card_media.dart';
 import 'package:customer/features/products/widgets/product_variant_sheet.dart';
@@ -130,9 +131,23 @@ class _ProductCardState extends State<ProductCard> {
     final rawDiscounted =
         (activeV?.discountedPrice ?? product.discountedPrice ?? 0).toDouble();
     final hasDiscount = rawDiscounted > 0 && rawDiscounted < rawPrice;
-    final displayPrice = hasDiscount ? rawDiscounted : rawPrice;
-    final discountPct = hasDiscount && rawPrice > 0
-        ? ((rawPrice - rawDiscounted) / rawPrice * 100).round()
+    // PestRaksh: the card shows the price of the cheapest package that can be
+    // booked, with "From" before it when the packages differ, as on the
+    // website (the rule is in utils/package_price.dart). It showed the first
+    // package's price, which read as the price of the service. When no package
+    // can be booked the first package is shown, as before. Adding to the cart
+    // is unchanged: the cart button keeps `rawPrice`, `rawDiscounted` and
+    // `hasDiscount` above, which are the first package's.
+    final priceV = cheapestPackage(variants) ?? activeV;
+    final shownRawPrice = (priceV?.price ?? product.price ?? 0).toDouble();
+    final shownRawDiscounted =
+        (priceV?.discountedPrice ?? product.discountedPrice ?? 0).toDouble();
+    final shownHasDiscount =
+        shownRawDiscounted > 0 && shownRawDiscounted < shownRawPrice;
+    final displayPrice = shownHasDiscount ? shownRawDiscounted : shownRawPrice;
+    final showFrom = showFromPrice(variants);
+    final discountPct = shownHasDiscount && shownRawPrice > 0
+        ? ((shownRawPrice - shownRawDiscounted) / shownRawPrice * 100).round()
         : 0;
 
     // attributesText is "Color: Red, Size: M" — show just the first value (e.g. "Red").
@@ -332,10 +347,13 @@ class _ProductCardState extends State<ProductCard> {
                   product: product,
                   isCompact: isCompact,
                   isDark: isDark,
+                  // PestRaksh: the shown package's values, not the cart
+                  // button's (see `priceV` above).
                   displayPrice: displayPrice,
-                  rawPrice: rawPrice,
-                  hasDiscount: hasDiscount,
+                  rawPrice: shownRawPrice,
+                  hasDiscount: shownHasDiscount,
                   discountPct: discountPct,
+                  showFrom: showFrom,
                   displayName: displayName,
                   avgRating: avgRating,
                   ratingCount: ratingCount,

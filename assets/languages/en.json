@@ -855,5 +855,7 @@
   "booking_day_holiday": "Holiday",
   "booking_day_closed": "Closed",
   "booking_day_full": "Full",
-  "technician_arrives_on": "Your technician will arrive on {date} between {window}."
+  "technician_arrives_on": "Your technician will arrive on {date} between {window}.",
+  "from_price": "From",
+  "added": "Added"
 }

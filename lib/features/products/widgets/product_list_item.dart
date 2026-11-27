@@ -16,6 +16,7 @@ import 'package:customer/commons/widgets/star_rating_row.dart';
 import 'package:customer/core/routes/product_detail_args.dart';
 import 'package:customer/core/routes/route_names.dart';
 import 'package:customer/features/products/models/product_model.dart';
+import 'package:customer/features/products/utils/package_price.dart';
 import 'package:customer/features/products/widgets/product_card_details.dart';
 import 'package:customer/features/products/widgets/product_card_pagination_dots.dart';
 import 'package:customer/features/products/widgets/product_variant_sheet.dart';
@@ -126,8 +127,21 @@ class _ProductListItemState extends State<ProductListItem> {
         (activeV?.discountedPrice ?? product.discountedPrice ?? 0).toDouble();
     final hasDiscount = rawDiscounted > 0 && rawDiscounted < rawPrice;
     final displayPrice = hasDiscount ? rawDiscounted : rawPrice;
-    final discountPct = hasDiscount && rawPrice > 0
-        ? ((rawPrice - rawDiscounted) / rawPrice * 100).round()
+    // PestRaksh: the row shows the price of the cheapest package that can be
+    // booked, with "From" before it when the packages differ, as on the
+    // website (the rule is in utils/package_price.dart). It showed the first
+    // package's price, which read as the price of the service. Adding to the
+    // cart is unchanged: the cart button keeps `displayPrice` above.
+    final priceV = cheapestPackage(variants) ?? activeV;
+    final shownRawPrice = (priceV?.price ?? product.price ?? 0).toDouble();
+    final shownRawDiscounted =
+        (priceV?.discountedPrice ?? product.discountedPrice ?? 0).toDouble();
+    final shownHasDiscount =
+        shownRawDiscounted > 0 && shownRawDiscounted < shownRawPrice;
+    final shownPrice = shownHasDiscount ? shownRawDiscounted : shownRawPrice;
+    final showFrom = showFromPrice(variants);
+    final discountPct = shownHasDiscount && shownRawPrice > 0
+        ? ((shownRawPrice - shownRawDiscounted) / shownRawPrice * 100).round()
         : 0;
     final avgRating = (product.rating ?? 0).toDouble();
     final ratingCount = product.ratingCount ?? 0;
@@ -196,20 +210,42 @@ class _ProductListItemState extends State<ProductListItem> {
                       ),
                       AppSpacing.h4,
                       Row(
+                        // PestRaksh: "From" stands on the price's baseline,
+                        // as on the website; a row without it is as before.
+                        crossAxisAlignment: showFrom ? .baseline : .center,
+                        textBaseline: TextBaseline.alphabetic,
                         children: [
+                          // PestRaksh: "From" before the price when the
+                          // packages differ. On a narrow screen it is "From"
+                          // that shortens; the price stays whole.
+                          if (showFrom) ...[
+                            Flexible(
+                              child: AppText(
+                                context.translate(LanguageLabelKeys.fromPrice),
+                                style: context.tt.labelMedium?.copyWith(
+                                  fontSize: strikeFontSize,
+                                  fontWeight: FontWeight.w400,
+                                  color: subColor,
+                                ),
+                                maxLines: 1,
+                                overflow: .ellipsis,
+                              ),
+                            ),
+                            AppSpacing.w4,
+                          ],
                           AppText(
-                            '${product.currency}${displayPrice.formatPrice(product.decimalPoint ?? 2)}',
+                            '${product.currency}${shownPrice.formatPrice(product.decimalPoint ?? 2)}',
                             style: context.tt.headlineMedium?.copyWith(
                               fontSize: priceFontSize,
                               fontWeight: FontWeight.w800,
                               color: textColor,
                             ),
                           ),
-                          if (hasDiscount) ...[
+                          if (shownHasDiscount) ...[
                             AppSpacing.w6,
                             Flexible(
                               child: AppText(
-                                '${product.currency}${rawPrice.formatPrice(product.decimalPoint ?? 2)}',
+                                '${product.currency}${shownRawPrice.formatPrice(product.decimalPoint ?? 2)}',
                                 style: context.tt.labelMedium?.copyWith(
                                   fontSize: strikeFontSize,
                                   fontWeight: FontWeight.w500,
@@ -224,7 +260,7 @@ class _ProductListItemState extends State<ProductListItem> {
                           ],
                         ],
                       ),
-                      if (hasDiscount) ...[
+                      if (shownHasDiscount) ...[
                         AppSpacing.h2,
                         AppText(
                           '$discountPct${AppConstants.percentSymbol}  ${context.translate(LanguageLabelKeys.off).toUpperCase()}',

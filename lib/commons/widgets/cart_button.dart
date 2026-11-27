@@ -45,6 +45,13 @@ class CartButton extends StatefulWidget {
   final bool hasAddons;
   final Future<bool> Function()? onAddonTap;
 
+  // PestRaksh: the ids of all the packages of this service. The backend
+  // allows [totalAllowedQuantity] (1) per service across all its packages,
+  // so with one package in the cart ADD on another is refused. Counted at
+  // the tap, from the cart, so the package sheet needn't rebuild. Empty:
+  // only this package counts, as in the vendor's code.
+  final List<String> servicePackageIds;
+
   const CartButton({
     super.key,
     required this.width,
@@ -64,6 +71,7 @@ class CartButton extends StatefulWidget {
     this.snackBarContext,
     this.hasAddons = false,
     this.onAddonTap,
+    this.servicePackageIds = const [],
   });
 
   @override
@@ -172,7 +180,13 @@ class _CartButtonState extends State<CartButton>
   /// returns false when another unit can't be added.
   bool _canAddOneMore() {
     final limit = widget.totalAllowedQuantity;
-    if (limit > 0 && _count >= limit) {
+    // PestRaksh: the service's other packages in the cart count too
+    // (see [CartButton.servicePackageIds]).
+    final cartState = context.read<CartCubit>().state;
+    final otherPackages = widget.servicePackageIds
+        .where((id) => id.isNotEmpty && id != widget.variantId)
+        .fold<int>(0, (sum, id) => sum + cartState.countFor(id));
+    if (limit > 0 && _count + otherPackages >= limit) {
       widget.onLimitReached?.call();
       final snackContext = widget.snackBarContext ?? context;
       AppSnackBar.show(
@@ -271,6 +285,16 @@ class _CartButtonState extends State<CartButton>
   void _increment() {
     if (!_canAddOneMore()) return;
 
+    // PestRaksh: changing package is "Added" on one, then ADD on another, two
+    // buttons with their own 500 ms delay. Send the removal still waiting
+    // now, so it reaches the server before this add (which waits its own
+    // 500 ms); otherwise the server could refuse the add as a second package
+    // of the service, and the phone and the server would disagree.
+    if (widget.servicePackageIds.isNotEmpty &&
+        AuthHiveBox.instance.isLoggedIn) {
+      unawaited(context.read<CartActionCubit>().flushAllPending());
+    }
+
     final wasZero = _count == 0;
     final baseQty = _count;
     AppHaptics.tap();
@@ -311,6 +335,26 @@ class _CartButtonState extends State<CartButton>
       context.read<CartCubit>().remove(widget.variantId, widget.price);
     } catch (e, s) {
       logDebug('CartButton remove (local): $e\n$s');
+    }
+    _scheduleSync(baseQty);
+  }
+
+  // PestRaksh: a tap on "Added" takes the service out of the cart, as on the
+  // website. The whole line goes at once: the quantity is normally 1, but an
+  // old cart may still hold 2 or more. The server gets the difference
+  // through the same debounced sync as the vendor's − (a guest's cart is
+  // only on the phone).
+  void _removeAll() {
+    if (_count <= 0) return;
+    final baseQty = _count;
+    AppHaptics.tap();
+    setState(() => _count = 0);
+    _scaleCtrl.forward(from: 0.0);
+    widget.onLastRemove();
+    try {
+      context.read<CartCubit>().removeAll(widget.variantId);
+    } catch (e, s) {
+      logDebug('CartButton remove all (local): $e\n$s');
     }
     _scheduleSync(baseQty);
   }
@@ -390,7 +434,15 @@ class _CartButtonState extends State<CartButton>
                   child: FadeTransition(opacity: anim, child: child),
                 );
               },
-              child: isStepper ? _stepperView() : _addView(),
+              // PestRaksh: a service is booked once (quantity 1), so in the
+              // cart the button reads "Added" instead of the − N + stepper.
+              // Add-on products, which PestRaksh doesn't have, keep the
+              // vendor's stepper.
+              child: !isStepper
+                  ? _addView()
+                  : widget.hasAddons
+                  ? _stepperView()
+                  : _addedView(),
             ),
           ),
         ),
@@ -450,6 +502,54 @@ class _CartButtonState extends State<CartButton>
       onTap: widget.hasAddons ? _onAddonAdd : _increment,
       behavior: HitTestBehavior.opaque,
       child: Center(child: _addLabelText()),
+    );
+  }
+
+  // PestRaksh: the button of a service that is in the cart: a filled
+  // "✓ Added", as on the website. With one package a tap removes the
+  // service; with several it opens the package sheet, as − and + did.
+  Widget _addedView() {
+    final fg = context.cs.onPrimary;
+    final label = context.translate(LanguageLabelKeys.added);
+    final isMulti = widget.optionCount > 1;
+    final onTap = isMulti ? widget.onFirstAdd : _removeAll;
+
+    // For screen readers: "Added, button", and "Remove" when a tap removes.
+    // The label stands in for the text below, so it isn't read twice.
+    return Semantics(
+      key: const ValueKey('counter'),
+      button: true,
+      label: label,
+      hint: isMulti ? null : context.translate(LanguageLabelKeys.remove),
+      excludeSemantics: true,
+      onTap: onTap,
+      // The whole button takes the tap, so none falls through to the
+      // parent card and opens the service page.
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Padding(
+          padding: const EdgeInsetsDirectional.symmetric(
+            horizontal: ThemeConstants.paddingXS,
+          ),
+          child: Center(
+            // Shrinks the label when the button is narrow (the small
+            // product cards) or the translation is long, so it never
+            // overflows.
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: .min,
+                spacing: ThemeConstants.spaceXXS,
+                children: [
+                  Icon(Icons.check, color: fg, size: widget.fontSize + 3),
+                  AppText(label, style: _addLabelStyle?.copyWith(color: fg)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 

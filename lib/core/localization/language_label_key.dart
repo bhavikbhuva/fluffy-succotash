@@ -951,4 +951,9 @@ class LanguageLabelKeys {
   static const String bookingDayClosed = "booking_day_closed";
   static const String bookingDayFull = "booking_day_full";
   static const String technicianArrivesOn = "technician_arrives_on";
+
+  // PestRaksh: service cards (APP_PLAN Phase 2). "From" stands before the
+  // cheapest package's price; "Added" replaces the quantity stepper.
+  static const String fromPrice = "from_price";
+  static const String added = "added";
 }
