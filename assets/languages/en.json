@@ -892,5 +892,8 @@
   "plan_includes": "What's included",
   "invalid_pincode": "Please enter a valid 6-digit PIN code.",
   "city_state_country": "City, state, country",
-  "move_pin_to_home": "You seem far from the city, so the map starts at its centre. Move the pin to the home."
+  "move_pin_to_home": "You seem far from the city, so the map starts at its centre. Move the pin to the home.",
+  "call_us": "Call us",
+  "whatsapp_us": "WhatsApp us",
+  "whatsapp_booking_message": "Hi PestRaksh, I have a question about my booking {ref}."
 }

@@ -1004,4 +1004,9 @@ class LanguageLabelKeys {
   static const String invalidPincode = "invalid_pincode";
   static const String cityStateCountry = "city_state_country";
   static const String movePinToHome = "move_pin_to_home";
+
+  // PestRaksh: call and WhatsApp (APP_PLAN Phase 7).
+  static const String callUs = "call_us";
+  static const String whatsappUs = "whatsapp_us";
+  static const String whatsappBookingMessage = "whatsapp_booking_message";
 }

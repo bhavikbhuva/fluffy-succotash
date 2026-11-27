@@ -1,3 +1,5 @@
+import 'package:customer/commons/utils/support_contact.dart';
+import 'package:customer/commons/widgets/support_contact_buttons.dart';
 import 'package:customer/utils/extensions/size_extensions.dart';
 import 'package:customer/core/constants/assets_constants.dart';
 import 'package:customer/core/constants/navigation_service.dart';
@@ -233,6 +235,21 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         if (OrderDetailAppointmentCard.hasContent(order)) ...[
                           AppSpacing.h12,
                           OrderDetailAppointmentCard(order: order),
+                        ],
+                        // PestRaksh: Call us and WhatsApp us, with the booking
+                        // number filled in, as on the website's booking page.
+                        if (currentSupportNumber().isNotEmpty) ...[
+                          AppSpacing.h12,
+                          SupportContactButtons(
+                            whatsAppText: context
+                                .translate(
+                                  LanguageLabelKeys.whatsappBookingMessage,
+                                )
+                                .replaceAll(
+                                  '{ref}',
+                                  order.orderNumber ?? '#${order.id ?? ''}',
+                                ),
+                          ),
                         ],
                         if ((order.refundAmount ?? 0) > 0) ...[
                           AppSpacing.h12,
