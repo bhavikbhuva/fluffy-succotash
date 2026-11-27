@@ -4,7 +4,6 @@ import 'package:customer/commons/widgets/app_scaffold.dart';
 import 'package:customer/commons/widgets/custom_app_bar.dart';
 import 'package:customer/core/constants/app_constants.dart';
 import 'package:customer/core/constants/navigation_service.dart';
-import 'package:customer/core/local_storage/auth_hive_box.dart';
 import 'package:customer/core/local_storage/settings_hive_box.dart';
 import 'package:customer/core/localization/language_label_key.dart';
 import 'package:customer/core/localization/services/localization_service.dart';
@@ -17,6 +16,7 @@ import 'package:customer/features/cart/cubit/cart_cubit.dart';
 import 'package:customer/features/address/widgets/location_confirm_card.dart';
 import 'package:customer/features/address/widgets/location_map_view.dart';
 import 'package:customer/features/address/models/location_result.dart';
+import 'package:customer/features/location/utils/single_zone_location.dart';
 import 'package:customer/utils/extensions/localization_extensions.dart';
 import 'package:customer/utils/geo_polygon.dart';
 import 'package:flutter/material.dart';
@@ -221,35 +221,20 @@ class _ZoneLocationPickerViewState extends State<_ZoneLocationPickerView>
           longitude: _pickedPoint.longitude,
         );
     final label = result.city.isNotEmpty ? result.city : _locationTitle;
-    final hive = SettingsHiveBox.instance;
-    final newChannel = zoneState.activeChannel ?? hive.channel;
-    final channelChanged = newChannel != hive.channel;
-    final cartCubit = context.read<CartCubit>();
 
-    // Drain debounced add/remove syncs under the OLD channel before the
-    // header flips — same reason as the home channel toggle.
-    if (channelChanged) {
-      await context.read<CartActionCubit>().flushAllPending();
-    }
-
-    await hive.saveUserLocation(
-      latitude: result.latitude.toString(),
-      longitude: result.longitude.toString(),
+    // PestRaksh: the save itself is shared with the single-zone first start,
+    // so both store the same location, zone and channel.
+    await saveSessionZoneLocation(
+      zoneState: zoneState,
+      zoneId: widget.zone.id,
+      latitude: result.latitude,
+      longitude: result.longitude,
       label: label,
       address: _locationSubtitle,
       pincode: result.pincode,
+      cartCubit: context.read<CartCubit>(),
+      cartActionCubit: context.read<CartActionCubit>(),
     );
-    await hive.saveZoneId(zoneState.zoneId ?? widget.zone.id);
-    await hive.setChannel(newChannel);
-
-    if (channelChanged) {
-      if (AuthHiveBox.instance.isLoggedIn) {
-        cartCubit.resetForChannelSwitch();
-        cartCubit.loadFromApi();
-      } else {
-        cartCubit.switchChannel(newChannel);
-      }
-    }
     if (mounted) AppNavigator.pop(context, true);
   }
 

@@ -13,6 +13,8 @@ import 'package:customer/commons/cubit/countries_cubit.dart';
 import 'package:customer/commons/cubit/regions_cubit.dart';
 import 'package:customer/features/address/cubit/save_address_cubit.dart';
 import 'package:customer/features/address/models/address_model.dart';
+import 'package:customer/features/address/repositories/address_repository.dart';
+import 'package:customer/utils/json_parsers.dart';
 import 'package:customer/commons/models/countries_model.dart';
 import 'package:customer/commons/models/regions_model.dart';
 import 'package:customer/commons/widgets/country_dropdown_field.dart';
@@ -96,6 +98,25 @@ class _AddressFormSheetState extends State<AddressFormSheet> {
   late final String _initialCountryTarget;
   late final String _initialStateTarget;
 
+  // PestRaksh: every address we serve is inside a service zone (Admin → Zones),
+  // and the zone under the map pin gives its city, state and country, as on the
+  // website. The form then shows them as one read-only line instead of the City
+  // field and the Country and State dropdowns, and saves the zone's values.
+  // Null until known, or when the zone's details are incomplete: then the
+  // fields show as before.
+  Map<String, dynamic>? _pinZone;
+  _ZoneLocation? _zoneLocation;
+  bool _zoneResolving = false;
+  final TextEditingController _zoneLineCtrl = TextEditingController();
+  List<CountriesData> _countries = const [];
+
+  // PestRaksh: the PIN field is hidden when the map filled it. If that PIN is
+  // wrong (our check on save, or the server's), show the field again so the
+  // customer can fix it.
+  bool _showPincodeAnyway = false;
+
+  bool get _pincodeHidden => _pincodePrefilled && !_showPincodeAnyway;
+
   @override
   void initState() {
     super.initState();
@@ -151,9 +172,11 @@ class _AddressFormSheetState extends State<AddressFormSheet> {
 
     final countriesState = context.read<CountriesCubit>().state;
     if (countriesState is CountriesLoaded) {
+      _countries = countriesState.countries;
       _prefillCountries(countriesState.countries, useSetState: false);
       _prefillAddressCountry(countriesState.countries, useSetState: false);
     }
+    _lookUpZone();
   }
 
   @override
@@ -168,6 +191,7 @@ class _AddressFormSheetState extends State<AddressFormSheet> {
     _cityCtrl.dispose();
     _stateCtrl.dispose();
     _countryCtrl.dispose();
+    _zoneLineCtrl.dispose();
     _regionsCubit.close();
     super.dispose();
   }
@@ -285,13 +309,142 @@ class _AddressFormSheetState extends State<AddressFormSheet> {
     });
   }
 
+  /// PestRaksh: looks up the zone under the pin when the form opens (also for
+  /// an address being edited). Quiet: outside every zone the map already says
+  /// so, and the fields stay as they are.
+  Future<void> _lookUpZone() async {
+    final loc = widget.locationResult;
+    try {
+      final response = await AddressRepository().getZone(
+        latitude: loc.latitude.toString(),
+        longitude: loc.longitude.toString(),
+      );
+      final data = response['data'];
+      if (!mounted || data is! Map<String, dynamic>) return;
+      _pinZone = data;
+      _resolveZone();
+    } catch (_) {}
+  }
+
+  /// PestRaksh: turns the zone's details into [_zoneLocation], matched to the
+  /// countries and states lists the address is saved with. The zone's state is
+  /// text ("Karnataka") unless the admin linked a state, so it is matched by
+  /// name. Runs again when the countries list arrives.
+  Future<void> _resolveZone() async {
+    final zone = _pinZone;
+    if (zone == null || _zoneLocation != null || _zoneResolving) return;
+    final countryId = parseInt(zone['country_id']);
+    final zoneCity = (parseString(zone['city']) ?? '').trim();
+    final city = zoneCity.isNotEmpty
+        ? zoneCity
+        : (parseString(zone['name']) ?? '').trim();
+    CountriesData? country;
+    for (final c in _countries) {
+      if (c.id != null && c.id == countryId) {
+        country = c;
+        break;
+      }
+    }
+    if (country == null || city.isEmpty) return;
+    _zoneResolving = true;
+    List<RegionsData>? regions;
+    try {
+      final response = await AddressRepository().getRegions(
+        countryId: country.id.toString(),
+      );
+      regions = response.data ?? [];
+    } catch (_) {
+      // No states list: keep the fields.
+    }
+    _zoneResolving = false;
+    if (!mounted || regions == null) return;
+    final regionId = parseInt(zone['region_id']);
+    final stateText = (parseString(zone['state']) ?? '').trim();
+    RegionsData? region;
+    for (final r in regions) {
+      final matches = regionId != null
+          ? r.id == regionId
+          : (r.name ?? '').trim().toLowerCase() == stateText.toLowerCase();
+      if (matches) {
+        region = r;
+        break;
+      }
+    }
+    // The zone's state isn't in the list, or there is no state at all.
+    if (regions.isNotEmpty && region == null) return;
+    final state = (region?.name ?? stateText).trim();
+    if (state.isEmpty) return;
+    final zoneLocation = _ZoneLocation(
+      city: city,
+      state: state,
+      regionId: region?.id,
+      country: country,
+    );
+    setState(() {
+      _zoneLocation = zoneLocation;
+      _zoneLineCtrl.text = zoneLocation.line;
+    });
+  }
+
+  /// PestRaksh: the PIN rule (6 digits, not starting with 0) is India's, so it
+  /// applies when the address is in India: the zone's country, else the one
+  /// picked, else India when it is the only country on offer.
+  bool get _pincodeIsIndian {
+    final country = _zoneLocation?.country ?? _selectedCountry;
+    if (country != null) return _isIndia(country);
+    if (_countryCtrl.text.trim().toLowerCase() == 'india') return true;
+    return _countries.isNotEmpty && _countries.every(_isIndia);
+  }
+
+  static bool _isIndia(CountriesData c) =>
+      (c.code ?? '').trim().toUpperCase() == 'IN' ||
+      (c.name ?? '').trim().toLowerCase() == 'india';
+
+  /// PestRaksh: shows the hidden PIN field and checks it once it is on screen,
+  /// so its error shows under it.
+  void _showPincodeField() {
+    if (!_pincodeHidden) return;
+    setState(() => _showPincodeAnyway = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _formKey.currentState?.validate();
+    });
+  }
+
+  /// PestRaksh: whether the server refused the PIN code. It answers in the
+  /// app's language when it has texts for it, else in English (it has no
+  /// Kannada), so both are checked.
+  bool _isPincodeError(String message) {
+    final m = message.trim();
+    return m == LanguageLabelKeys.invalidPincode ||
+        m == context.translate(LanguageLabelKeys.invalidPincode) ||
+        m == 'Please enter a valid 6-digit PIN code.';
+  }
+
   void _submit() {
+    // PestRaksh: an Indian PIN code is saved without spaces. A hidden PIN field
+    // isn't in the form, so its check wouldn't run: show it when it's wrong.
+    final pincode = _pincodeIsIndian
+        ? _pincodeCtrl.text.replaceAll(RegExp(r'\s+'), '')
+        : _pincodeCtrl.text.trim();
+    if (_pincodeHidden &&
+        (pincode.isEmpty ||
+            (_pincodeIsIndian && !isValidIndianPincode(pincode)))) {
+      _showPincodeField();
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
     final loc = widget.locationResult;
+    // PestRaksh: what is saved: the zone's city, state and country when known,
+    // else the fields.
+    final zone = _zoneLocation;
+    final city = zone?.city ?? _cityCtrl.text.trim();
+    final state = zone?.state ?? _stateCtrl.text.trim();
+    final country = zone?.country.name ?? _countryCtrl.text.trim();
+    final regionId = zone != null ? zone.regionId : _regionId;
     SettingsHiveBox.instance.saveUserLocation(
       latitude: loc.latitude.toString(),
       longitude: loc.longitude.toString(),
-      pincode: _pincodeCtrl.text.trim(),
+      pincode: pincode,
     );
     final cubit = context.read<SaveAddressCubit>();
     final hasAltMobile = _altMobileCtrl.text.trim().isNotEmpty;
@@ -312,15 +465,15 @@ class _AddressFormSheetState extends State<AddressFormSheet> {
         address: _addressCtrl.text.trim(),
         landmark: _landmarkCtrl.text.trim(),
         area: _areaCtrl.text.trim(),
-        pincode: _pincodeCtrl.text.trim(),
-        city: _cityCtrl.text.trim(),
-        state: _stateCtrl.text.trim(),
-        country: _countryCtrl.text.trim(),
+        pincode: pincode,
+        city: city,
+        state: state,
+        country: country,
         type: _type,
         latitude: loc.latitude.toString(),
         longitude: loc.longitude.toString(),
         isDefault: _isDefault,
-        regionId: _regionId,
+        regionId: regionId,
       );
     } else {
       cubit.addAddress(
@@ -332,15 +485,15 @@ class _AddressFormSheetState extends State<AddressFormSheet> {
         address: _addressCtrl.text.trim(),
         landmark: _landmarkCtrl.text.trim(),
         area: _areaCtrl.text.trim(),
-        pincode: _pincodeCtrl.text.trim(),
-        city: _cityCtrl.text.trim(),
-        state: _stateCtrl.text.trim(),
-        country: _countryCtrl.text.trim(),
+        pincode: pincode,
+        city: city,
+        state: state,
+        country: country,
         type: _type,
         latitude: loc.latitude.toString(),
         longitude: loc.longitude.toString(),
         isDefault: _isDefault,
-        regionId: _regionId,
+        regionId: regionId,
       );
     }
   }
@@ -383,6 +536,8 @@ class _AddressFormSheetState extends State<AddressFormSheet> {
                 AppNavigator.pop(context);
                 widget.onSuccess();
               } else if (state is SaveAddressError) {
+                // PestRaksh: the server refused the PIN the map filled in.
+                if (_isPincodeError(state.message)) _showPincodeField();
                 AppSnackBar.show(
                   context: context,
                   message: state.message,
@@ -394,8 +549,10 @@ class _AddressFormSheetState extends State<AddressFormSheet> {
           BlocListener<CountriesCubit, CountriesState>(
             listener: (context, state) {
               if (state is CountriesLoaded) {
+                _countries = state.countries;
                 _prefillCountries(state.countries);
                 _prefillAddressCountry(state.countries);
+                _resolveZone();
               }
             },
           ),
@@ -431,7 +588,12 @@ class _AddressFormSheetState extends State<AddressFormSheet> {
                           cityCtrl: _cityCtrl,
                           pincodeCtrl: _pincodeCtrl,
                           cityPrefilled: _cityPrefilled,
-                          pincodePrefilled: _pincodePrefilled,
+                          pincodePrefilled: _pincodeHidden,
+                          // PestRaksh: the zone's "city, state, country" line.
+                          zoneLocationCtrl: _zoneLocation != null
+                              ? _zoneLineCtrl
+                              : null,
+                          pincodeIsIndian: _pincodeIsIndian,
                           countryField: CountryDropdownField(
                             selected: _selectedCountry,
                             labelText: context.translate(
@@ -520,4 +682,27 @@ class _AddressFormSheetState extends State<AddressFormSheet> {
       ),
     );
   }
+}
+
+/// PestRaksh: the city, state and country of the service zone under the pin.
+class _ZoneLocation {
+  final String city;
+  final String state;
+
+  /// Sent as `region_id`; null when the country has no states list.
+  final int? regionId;
+  final CountriesData country;
+
+  const _ZoneLocation({
+    required this.city,
+    required this.state,
+    required this.regionId,
+    required this.country,
+  });
+
+  String get line => [
+    city,
+    state,
+    country.name ?? '',
+  ].where((s) => s.trim().isNotEmpty).join(', ');
 }

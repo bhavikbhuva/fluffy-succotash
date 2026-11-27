@@ -7,6 +7,8 @@ enum BlockType {
   titleImage,
   textSection,
   productTabs,
+  // PestRaksh: the home page's "What pest problem are you facing?" grid.
+  pestProblemGrid,
   unknown;
 
   static BlockType fromRaw(String? raw) {
@@ -27,6 +29,8 @@ enum BlockType {
         return BlockType.textSection;
       case 'product_tabs':
         return BlockType.productTabs;
+      case 'pest_problem_grid':
+        return BlockType.pestProblemGrid;
       default:
         return BlockType.unknown;
     }

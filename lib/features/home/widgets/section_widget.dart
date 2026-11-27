@@ -8,6 +8,7 @@ import 'package:customer/features/home/widgets/banner_carousel.dart';
 import 'package:customer/features/home/widgets/brand_block.dart';
 import 'package:customer/features/home/widgets/category_block.dart';
 import 'package:customer/features/home/widgets/grid_banner.dart';
+import 'package:customer/features/home/widgets/pest_problem_grid.dart';
 import 'package:customer/features/home/widgets/product_block.dart';
 import 'package:customer/features/home/widgets/product_tabs_block.dart';
 import 'package:customer/features/home/widgets/text_section.dart';
@@ -251,6 +252,25 @@ class SectionWidget extends StatelessWidget {
             onTap: onProductTap,
             blockId: block.id ?? '',
             onViewMoreTap: onViewMoreTap,
+          );
+        }
+
+      // PestRaksh: "What pest problem are you facing?". Service tiles open
+      // the service and category tiles open the category, through the same
+      // callbacks as the product and category blocks.
+      case BlockType.pestProblemGrid:
+        if (block.products?.isNotEmpty == true ||
+            block.categories?.isNotEmpty == true) {
+          return PestProblemGrid(
+            products: block.products ?? const [],
+            categories: block.categories ?? const [],
+            sectionTitle: block.config?.sectionTitle,
+            sectionSubtitle: block.config?.sectionSubtitle,
+            backgroundColor: block.config?.backgroundColor,
+            textColor: block.config?.textColor,
+            itemTextColor: block.config?.itemTextColor,
+            onProductTap: onProductTap,
+            onCategoryTap: onCategoryTap,
           );
         }
 

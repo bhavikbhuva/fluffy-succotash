@@ -35,6 +35,8 @@ import 'package:customer/features/address/models/address_model.dart';
 import 'package:customer/features/address/models/google_places_model.dart'
     hide Text;
 import 'package:customer/features/address/models/location_result.dart';
+import 'package:customer/features/address/repositories/address_repository.dart';
+import 'package:customer/features/address/utils/location_guard.dart';
 
 export 'package:customer/features/address/models/location_result.dart';
 import 'package:customer/utils/show_app_bottom_sheet.dart';
@@ -64,6 +66,10 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
   bool _isSearchActive = false;
   Timer? _geocodeDebounce;
 
+  // PestRaksh: the middle of the customer's zone (the city), fetched once on
+  // open. Null when unknown; then "use current location" works as before.
+  late final Future<LatLng?> _cityCentre;
+
   bool get _isEdit => widget.address != null;
   AppSettingsData? get _settings => SettingsHiveBox.instance.getAppSettings();
   bool get _isGoogle => _settings?.mapProvider == AppConstants.mapProvider;
@@ -79,6 +85,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
   void initState() {
     super.initState();
     initLocationCamera(this, onCameraIdle: _handleCameraIdle);
+    _cityCentre = _loadCityCentre();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Zone call on screen open using best available coordinates
@@ -192,15 +199,38 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
 
   // ── Current location ──────────────────────────────────────────────────────
 
+  /// PestRaksh: the zones list is the only place the app gets a zone's
+  /// boundary; its middle stands in for the city centre. Any failure, or a
+  /// slow reply, leaves it unknown.
+  Future<LatLng?> _loadCityCentre() async {
+    final hive = SettingsHiveBox.instance;
+    final zoneId = hive.zoneId;
+    try {
+      final zones = await AddressRepository()
+          .getZones(countryId: (hive.selectedCountryId ?? 0).toString())
+          .timeout(const Duration(seconds: 10));
+      return zoneCentre(zones.data ?? [], zoneId);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _useCurrentLocation() => useCurrentLocation(
-    onLocated: (point) async {
+    onLocated: (position) async {
+      // PestRaksh: more than 80 km from the city, start on the city centre
+      // instead, as the website does; the customer can still move the pin.
+      final centre = await _cityCentre;
+      if (!mounted) return;
+      final point = startPointNearCity(position, centre);
+      final isFar = point != position;
       setState(() {
         _pickedPoint = point;
         _locationTitle = context.translate(LanguageLabelKeys.loadingAddress);
         _locationSubtitle = '';
         _isGeocoding = true;
       });
-      moveCamera(point, zoom: 15, isGoogle: _isGoogle);
+      // PestRaksh: a wider view on the city centre, to find the home from.
+      moveCamera(point, zoom: isFar ? 12 : 15, isGoogle: _isGoogle);
       context.read<GeocodingCubit>().geocode(
         latitude: point.latitude.toString(),
         longitude: point.longitude.toString(),

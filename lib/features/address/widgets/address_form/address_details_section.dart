@@ -5,6 +5,11 @@ import 'package:customer/core/localization/language_label_key.dart';
 import 'package:customer/commons/widgets/app_text_field.dart';
 import 'package:customer/utils/extensions/localization_extensions.dart';
 
+/// PestRaksh: an Indian PIN code is 6 digits and never starts with 0 (the
+/// backend checks the same).
+bool isValidIndianPincode(String value) =>
+    RegExp(r'^[1-9][0-9]{5}$').hasMatch(value.trim());
+
 /// Address, landmark, area and city/pincode/state/country fields.
 class AddressDetailsSection extends StatelessWidget {
   final TextEditingController addressCtrl;
@@ -29,6 +34,14 @@ class AddressDetailsSection extends StatelessWidget {
   final bool cityPrefilled;
   final bool pincodePrefilled;
 
+  /// PestRaksh: the service zone's "city, state, country" line, when the zone
+  /// under the pin has full details. Then it's shown read-only instead of the
+  /// City field and the Country and State dropdowns.
+  final TextEditingController? zoneLocationCtrl;
+
+  /// PestRaksh: in India the PIN code is at most 6 digits and checked on save.
+  final bool pincodeIsIndian;
+
   const AddressDetailsSection({
     super.key,
     required this.addressCtrl,
@@ -40,13 +53,15 @@ class AddressDetailsSection extends StatelessWidget {
     required this.countryField,
     required this.cityPrefilled,
     required this.pincodePrefilled,
+    this.zoneLocationCtrl,
+    this.pincodeIsIndian = false,
   });
 
   @override
   Widget build(BuildContext context) {
     // Fields already filled from the map pick are hidden entirely — only
     // fields missing from the geocoding result stay open for manual entry.
-    final showCity = !cityPrefilled;
+    final showCity = !cityPrefilled && zoneLocationCtrl == null;
     final showPincode = !pincodePrefilled;
 
     final cityField = AppTextField(
@@ -66,10 +81,22 @@ class AddressDetailsSection extends StatelessWidget {
       labelText: context.translate(LanguageLabelKeys.pincode),
       hintText: context.translate(LanguageLabelKeys.enterPincode),
       keyboardType: TextInputType.number,
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      validator: (v) => (v == null || v.trim().isEmpty)
-          ? context.translate(LanguageLabelKeys.required)
-          : null,
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+        // PestRaksh: an Indian PIN code has 6 digits.
+        if (pincodeIsIndian) LengthLimitingTextInputFormatter(6),
+      ],
+      validator: (v) {
+        // PestRaksh: required, and in India 6 digits not starting with 0.
+        final pincode = (v ?? '').replaceAll(RegExp(r'\s+'), '');
+        if (pincode.isEmpty) {
+          return context.translate(LanguageLabelKeys.required);
+        }
+        if (pincodeIsIndian && !isValidIndianPincode(pincode)) {
+          return context.translate(LanguageLabelKeys.invalidPincode);
+        }
+        return null;
+      },
     );
 
     return Column(
@@ -115,14 +142,25 @@ class AddressDetailsSection extends StatelessWidget {
               if (showPincode) Expanded(child: pincodeField),
             ],
           ),
-        Row(
-          crossAxisAlignment: .start,
-          spacing: ThemeConstants.spaceM,
-          children: [
-            Expanded(child: countryField),
-            Expanded(child: stateField),
-          ],
-        ),
+        // PestRaksh: city, state and country from the service zone, as one
+        // read-only line; the dropdowns only when the zone's details are
+        // incomplete.
+        if (zoneLocationCtrl != null)
+          AppTextField(
+            controller: zoneLocationCtrl!,
+            readOnly: true,
+            maxLines: null,
+            labelText: context.translate(LanguageLabelKeys.cityStateCountry),
+          )
+        else
+          Row(
+            crossAxisAlignment: .start,
+            spacing: ThemeConstants.spaceM,
+            children: [
+              Expanded(child: countryField),
+              Expanded(child: stateField),
+            ],
+          ),
       ],
     );
   }

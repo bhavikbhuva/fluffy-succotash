@@ -999,4 +999,8 @@ class LanguageLabelKeys {
   static const String choosePlan = "choose_plan";
   static const String chooseSize = "choose_size";
   static const String planIncludes = "plan_includes";
+
+  // PestRaksh: the address form (APP_PLAN Phase 6).
+  static const String invalidPincode = "invalid_pincode";
+  static const String cityStateCountry = "city_state_country";
 }

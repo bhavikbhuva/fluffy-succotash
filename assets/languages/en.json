@@ -889,5 +889,7 @@
   "send_request": "Send request",
   "choose_plan": "Choose a plan",
   "choose_size": "Choose a size",
-  "plan_includes": "What's included"
+  "plan_includes": "What's included",
+  "invalid_pincode": "Please enter a valid 6-digit PIN code.",
+  "city_state_country": "City, state, country"
 }
