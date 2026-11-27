@@ -48,6 +48,9 @@ README is the vendor's.
   the package under it, shows an Appointment and Technician card, and the status without "Booking" before it.
   Phase 3 pushed 27 Nov (`7eeb4d0`); its APK, with Phases 1–3, is on the owner's Desktop as
   `PestRaksh-phase3.apk`.
+- **Phase 4 built, 27 Nov 2026 (not pushed):** the booking page's "Visits & warranty" card: each visit's state,
+  Choose a time / Change time (checkout's picker in a sheet), the warranty and Request a free re-visit
+  (`booking_visits`, `booking_visits/schedule`, `booking_visits/revisit`).
 - **Owner, in the admin:** Zones → Bangalore → **Quick** only, which hides the Quick / Shop switch in the app.
 - **Texts as on the website** (26 Nov 2026): Refund Policy, Privacy Policy, Book Again, Continue with Google,
   and the My Bookings tabs Upcoming / Past. They are in `assets/languages/en.json` here and in the backend's
