@@ -56,7 +56,10 @@ README is the vendor's.
   (`eb4f2c6`); review fixes in `1958d8c`.
 - **Phase 6 built, 27 Nov 2026 (not pushed):** the home's "What pest problem are you facing?" grid; first
   launch straight to the single zone (Bangalore); the 80 km guard on "use my location"; the address form with
-  city, state and country from the zone and a 6-digit PIN.
+  city, state and country from the zone and a 6-digit PIN. Pushed 27 Nov (`2ba37da`); review fixes in `66e4291`.
+- **Phase 7 built, 27 Nov 2026 (not pushed):** Call us and WhatsApp us to the support number on the booking page,
+  and Call us in support chat (`commons/utils/support_contact.dart`). Chat itself needs no change: test it on the
+  phone.
 - **Owner, in the admin:** Zones → Bangalore → **Quick** only, which hides the Quick / Shop switch in the app.
 - **Texts as on the website** (26 Nov 2026): Refund Policy, Privacy Policy, Book Again, Continue with Google,
   and the My Bookings tabs Upcoming / Past. They are in `assets/languages/en.json` here and in the backend's
