@@ -59,7 +59,12 @@ README is the vendor's.
   city, state and country from the zone and a 6-digit PIN. Pushed 27 Nov (`2ba37da`); review fixes in `66e4291`.
 - **Phase 7 built, 27 Nov 2026 (not pushed):** Call us and WhatsApp us to the support number on the booking page,
   and Call us in support chat (`commons/utils/support_contact.dart`). Chat itself needs no change: test it on the
-  phone.
+  phone. Pushed 27 Nov (`a5c8876`).
+- **Phase 8 built, 27 Nov 2026 (`d9dd594`):** a failed or pending online payment keeps the booking; "being
+  confirmed" and "moved to wallet" show as information (`payment_method/utils/payment_result.dart`).
+- **Phase 9 built, 27 Nov 2026 (`2e076a3`):** the cream home header with the logo; App Links for
+  `pestraksh.com/{zone}/product/{slug}` and `/order-detail/{id}` (the website must serve
+  `/.well-known/assetlinks.json`, website commit `53ea624`).
 - **Owner, in the admin:** Zones → Bangalore → **Quick** only, which hides the Quick / Shop switch in the app.
 - **Texts as on the website** (26 Nov 2026): Refund Policy, Privacy Policy, Book Again, Continue with Google,
   and the My Bookings tabs Upcoming / Past. They are in `assets/languages/en.json` here and in the backend's
