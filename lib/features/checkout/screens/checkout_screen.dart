@@ -897,6 +897,18 @@ class _CheckoutScreenState extends State<CheckoutScreen>
             if (state is PlaceOrderError) _bookingSlotsCubit.reload();
           },
         ),
+        // PestRaksh: a promo's discount was worked out for the subtotal it
+        // was applied to, and was only checked again on an address or mode
+        // change. After Remove the screen kept the old discount while the
+        // server re-checks it at booking: check it again on every new
+        // subtotal.
+        BlocListener<CartFetchCubit, CartFetchState>(
+          listenWhen: (prev, curr) =>
+              prev is CartFetchLoaded &&
+              curr is CartFetchLoaded &&
+              prev.cart.data?.subTotal != curr.cart.data?.subTotal,
+          listener: (context, state) => _revalidatePromoIfNeeded(),
+        ),
       ],
       child: AppScaffold(
         applyBottomInset: false,

@@ -862,5 +862,7 @@
   "warranty_badge": "{days}-day warranty",
   "warranty_badge_with_revisit": "{days}-day warranty, free re-visit",
   "service_not_available": "This service isn't available right now. Have a look at our other services.",
-  "browse_services": "Browse Services"
+  "browse_services": "Browse Services",
+  "remove_service_title": "Remove this service?",
+  "remove_service_message": "{name} will be taken out of this booking."
 }

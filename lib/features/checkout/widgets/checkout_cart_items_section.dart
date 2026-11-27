@@ -32,6 +32,7 @@ import 'package:customer/utils/extensions/context_extensions.dart';
 import 'package:customer/utils/extensions/localization_extensions.dart';
 import 'package:customer/utils/extensions/size_extensions.dart';
 import 'package:customer/core/constants/theme_constants.dart';
+import 'package:customer/commons/widgets/app_confirm_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:customer/commons/utils/app_haptics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -306,11 +307,18 @@ class CheckoutCartItemTile extends StatelessWidget {
     final dp = item.decimalPoint ?? 0;
     final name = (item.name ?? '').trim();
     final title = name.isNotEmpty ? name : item.productName ?? '';
-    final variant =
+    // PestRaksh: a package has a name ("2 BHK (Single Service)") but no
+    // attributes, so the line never said which package was booked. Fall back
+    // to the package's name, as the website does (CartProductCard.tsx).
+    final attributesText =
         VariantAttributesFormatter.format(
-          item.variants?.first.variantAttributes,
+          item.variants?.firstOrNull?.variantAttributes,
         ) ??
         "";
+    final packageName = (item.variants?.firstOrNull?.name ?? '').trim();
+    final variant = attributesText.isNotEmpty
+        ? attributesText
+        : (packageName != title ? packageName : '');
     final slabMessage = (item.slabDiscountMessage ?? '').trim();
     final isOutOfStock = item.isOutOfStock;
 
@@ -439,7 +447,13 @@ class CheckoutCartItemTile extends StatelessWidget {
                               // Add-on module: per-line stepper.
                               AddonCartLineQtyControl(item: item)
                             else
-                              CheckoutQtyControl(item: item),
+                              // PestRaksh: a service is booked once
+                              // (quantity 1), so the line has Remove, as on
+                              // the website, instead of the − 1 + stepper.
+                              _RemoveLineButton(
+                                onConfirmed: () => _removeItem(context, item),
+                                serviceName: title,
+                              ),
                           ],
                         ),
                         Row(
@@ -585,6 +599,54 @@ class CheckoutCartItemTile extends StatelessWidget {
             child: _editAddonsLink(context),
           ),
       ],
+    );
+  }
+}
+
+/// PestRaksh: "Remove" on a booked service, asking first, as the website does.
+class _RemoveLineButton extends StatelessWidget {
+  const _RemoveLineButton({
+    required this.onConfirmed,
+    required this.serviceName,
+  });
+
+  final VoidCallback onConfirmed;
+  final String serviceName;
+
+  Future<void> _confirm(BuildContext context) async {
+    final ok = await AppConfirmDialog.show(
+      context: context,
+      title: context.translate(LanguageLabelKeys.removeServiceTitle),
+      message: context
+          .translate(LanguageLabelKeys.removeServiceMessage)
+          .replaceAll('{name}', serviceName),
+      confirmLabel: context.translate(LanguageLabelKeys.remove),
+      cancelLabel: context.translate(LanguageLabelKeys.cancel),
+      isDestructive: true,
+      icon: AppConfirmDialogIcon.warning,
+    );
+    if (ok == true && context.mounted) onConfirmed();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: AppRadius.r8,
+      onTap: () => _confirm(context),
+      child: Padding(
+        // PestRaksh: a taller tap area than the text, so it is easy to hit.
+        padding: const EdgeInsetsDirectional.symmetric(
+          horizontal: ThemeConstants.paddingS,
+          vertical: ThemeConstants.paddingS,
+        ),
+        child: AppText(
+          context.translate(LanguageLabelKeys.remove),
+          style: context.tt.labelMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: context.cs.error,
+          ),
+        ),
+      ),
     );
   }
 }

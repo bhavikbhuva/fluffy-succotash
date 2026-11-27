@@ -963,4 +963,8 @@ class LanguageLabelKeys {
   static const String warrantyBadgeWithRevisit = "warranty_badge_with_revisit";
   static const String serviceNotAvailable = "service_not_available";
   static const String browseServices = "browse_services";
+
+  // PestRaksh: cart and checkout (APP_PLAN Phase 2, part 2C).
+  static const String removeServiceTitle = "remove_service_title";
+  static const String removeServiceMessage = "remove_service_message";
 }
