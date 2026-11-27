@@ -53,7 +53,8 @@ class OrderCard extends StatelessWidget {
       order.bookingDate,
       order.bookingTimeLabel,
     );
-    final technician = (order.deliveryBoyName ?? '').trim();
+    // PestRaksh: only while a technician is on the job or has done it.
+    final technician = bookingTechnicianName(order);
     // Track button: quick orders only (ecommerce has no live rider to
     // track) and only while the order is still active — hidden once
     // delivered/cancelled/returned. Cancel now lives on the order detail

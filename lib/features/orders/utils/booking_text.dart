@@ -38,3 +38,14 @@ String bookingLinePackage(OrderItems item) {
   final package = (item.productName ?? '').trim();
   return package == bookingLineTitle(item) ? '' : package;
 }
+
+/// The technician to show on a booking: only while one is on the job or has
+/// done it (Technician assigned, on the way, Service completed) and the
+/// booking isn't a pickup, as on the website (OrderDetail.tsx). A cancelled
+/// booking keeps its technician's id, so the name alone isn't enough.
+String bookingTechnicianName(OrderData order) {
+  const shown = {9, 5, 6};
+  if (!shown.contains(order.activeStatus)) return '';
+  if (order.deliveryType == 'pickup') return '';
+  return (order.deliveryBoyName ?? '').trim();
+}

@@ -207,10 +207,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       ),
                       children: [
                         OrderTimelineStatusCard(
-                          statusLabel:
-                              order.activeStatus == OrderStatus.orderReceived
-                              ? order.orderStatusName ?? ""
-                              : '${context.translate(LanguageLabelKeys.order)} ${order.orderStatusName ?? ""}',
+                          // PestRaksh: the status alone ("Technician
+                          // assigned"); the vendor put "Order" (our
+                          // "Booking") before it, which read oddly.
+                          statusLabel: order.orderStatusName ?? "",
                           color:
                               order.activeStatus == OrderStatus.paymentPending
                               ? context.cs.errorContainer
@@ -218,6 +218,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           timeline: order.timeline,
                           icon: OrderStatusLabels.icon(order.activeStatus),
                         ),
+                        // PestRaksh: the appointment and the technician.
+                        if (OrderDetailAppointmentCard.hasContent(order)) ...[
+                          AppSpacing.h12,
+                          OrderDetailAppointmentCard(order: order),
+                        ],
                         if ((order.refundAmount ?? 0) > 0) ...[
                           AppSpacing.h12,
                           OrderDetailRefundCard(

@@ -196,4 +196,27 @@ void main() {
       expect(bookingLinePackage(order.items!.single), '2 BHK (Single Service)');
     });
   });
+
+  group('bookingTechnicianName', () {
+    OrderData order(int status, {String? type, String? name = 'Ravi'}) =>
+        OrderData.fromJson({
+          'active_status': status,
+          'delivery_type': type,
+          'delivery_boy_name': name,
+        });
+
+    test('shown while assigned, on the way and completed', () {
+      for (final s in [9, 5, 6]) {
+        expect(bookingTechnicianName(order(s)), 'Ravi');
+      }
+    });
+
+    test('hidden when confirmed, cancelled, payment pending or a pickup', () {
+      for (final s in [1, 2, 7]) {
+        expect(bookingTechnicianName(order(s)), '');
+      }
+      expect(bookingTechnicianName(order(9, type: 'pickup')), '');
+      expect(bookingTechnicianName(order(9, name: null)), '');
+    });
+  });
 }

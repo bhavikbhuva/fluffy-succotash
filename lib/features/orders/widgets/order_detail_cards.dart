@@ -20,6 +20,7 @@ import 'package:customer/features/chat/services/chat_conversation_resolver.dart'
 import 'package:customer/features/orders/cubit/order_detail_cubit.dart';
 import 'package:customer/features/orders/cubit/order_status_update_cubit.dart';
 import 'package:customer/features/orders/models/order_model.dart';
+import 'package:customer/features/orders/utils/booking_text.dart';
 import 'package:customer/features/orders/utils/order_payment_utils.dart';
 import 'package:customer/features/orders/widgets/order_detail_shared_widgets.dart';
 import 'package:customer/features/orders/widgets/rate_product_sheet.dart';
@@ -647,8 +648,16 @@ class OrderDetailItemRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final imgSize = context.screenWidth * 0.15;
-    final variant =
+    // PestRaksh: the line is titled by its service, with the package it was
+    // booked as under it (the line stores only the package), as on the
+    // website; a single line has no "1 ×".
+    final attributesText =
         VariantAttributesFormatter.format(item.variantAttributes) ?? "";
+    final variant = attributesText.isNotEmpty
+        ? attributesText
+        : bookingLinePackage(item);
+    final qty = item.quantity ?? 1;
+    final title = bookingLineTitle(item);
     final hasImage = item.imageUrl.hasValue;
 
     return Column(
@@ -688,7 +697,7 @@ class OrderDetailItemRow extends StatelessWidget {
                   Text.rich(
                     ProductTypeIcon.nameSpan(
                       productType: item.productType,
-                      name: '${item.quantity ?? 1} × ${item.productName ?? ''}',
+                      name: qty > 1 ? '$qty × $title' : title,
                       size: ThemeConstants.iconXS,
                     ),
                     style: context.tt.bodyMedium?.copyWith(
@@ -1007,7 +1016,8 @@ class _ItemRatingControlState extends State<_ItemRatingControl>
     final data = await showRateProductSheet(
       context,
       productId: widget.item.productId?.toString() ?? '',
-      productName: widget.item.productName ?? '',
+      // PestRaksh: a review is of the service, not the package booked.
+      productName: bookingLineTitle(widget.item),
       ratingId: own?.id,
       initialRate: int.tryParse(own?.rate ?? '') ?? 0,
       initialReview: own?.review ?? '',
@@ -1279,6 +1289,49 @@ class OrderDetailPriceSummaryCard extends StatelessWidget {
             );
           }),
       ],
+    );
+  }
+}
+
+/// PestRaksh: when the technician comes, and who: "Appointment" with the date
+/// and window, and the technician once one is assigned, as on the website's
+/// booking page. Hidden when there is neither.
+class OrderDetailAppointmentCard extends StatelessWidget {
+  final OrderData order;
+  const OrderDetailAppointmentCard({super.key, required this.order});
+
+  static bool hasContent(OrderData order) =>
+      bookingAppointmentText(
+        order.bookingDate,
+        order.bookingTimeLabel,
+      ).isNotEmpty ||
+      bookingTechnicianName(order).isNotEmpty;
+
+  @override
+  Widget build(BuildContext context) {
+    final appointment = bookingAppointmentText(
+      order.bookingDate,
+      order.bookingTimeLabel,
+    );
+    final technician = bookingTechnicianName(order);
+    return OrderDetailCard(
+      child: Column(
+        crossAxisAlignment: .stretch,
+        spacing: ThemeConstants.spaceM,
+        children: [
+          if (appointment.isNotEmpty)
+            OrderDetailLabelValueRow(
+              label: context.translate(LanguageLabelKeys.appointment),
+              value: appointment,
+              maxLines: 2,
+            ),
+          if (technician.isNotEmpty)
+            OrderDetailLabelValueRow(
+              label: context.translate(LanguageLabelKeys.technician),
+              value: technician,
+            ),
+        ],
+      ),
     );
   }
 }

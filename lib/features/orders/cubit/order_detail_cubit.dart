@@ -82,6 +82,12 @@ class OrderDetailCubit extends Cubit<OrderDetailState>
     if (data['active_status'] != null) {
       current.orderDetail.activeStatus = data['active_status'];
     }
+    // PestRaksh: the status's name too, or the card read "Booking Confirmed"
+    // with the cancelled icon until the page was refreshed.
+    final statusName = data['order_status_name'];
+    if (statusName is String && statusName.isNotEmpty) {
+      current.orderDetail.orderStatusName = statusName;
+    }
     if (data['is_cancellable'] != null) {
       current.orderDetail.isCancellable = data['is_cancellable'];
     } else if (items.every((i) => i.activeStatus == OrderStatus.cancelled)) {
