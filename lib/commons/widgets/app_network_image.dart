@@ -1,12 +1,11 @@
+import 'package:customer/commons/widgets/placeholder_logo.dart';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:customer/commons/widgets/app_network_video.dart';
-import 'package:customer/core/constants/assets_constants.dart';
 import 'package:customer/utils/media_type.dart';
 import 'package:flutter/material.dart';
-import 'package:customer/commons/widgets/app_svg_icon.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:octo_image/octo_image.dart';
 
@@ -223,7 +222,7 @@ class AppNetworkImage extends StatelessWidget {
       child: FractionallySizedBox(
         widthFactor: 0.4,
         heightFactor: 0.4,
-        child: AppSvgIcon(AssetsConstants.placeholder, fit: BoxFit.contain),
+        child: const PlaceholderLogo(),
       ),
     );
   }

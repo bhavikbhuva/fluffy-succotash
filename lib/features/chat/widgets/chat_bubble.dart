@@ -1,3 +1,4 @@
+import 'package:customer/commons/widgets/placeholder_logo.dart';
 import 'package:customer/utils/server_time.dart';
 import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
@@ -209,7 +210,7 @@ class _ImageAttachment extends StatelessWidget {
     child: FractionallySizedBox(
       widthFactor: 0.3,
       heightFactor: 0.3,
-      child: AppSvgIcon(AssetsConstants.placeholder, fit: BoxFit.contain),
+      child: const PlaceholderLogo(),
     ),
   );
 }

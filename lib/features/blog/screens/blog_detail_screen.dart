@@ -1,10 +1,9 @@
+import 'package:customer/commons/widgets/placeholder_logo.dart';
 import 'package:customer/utils/extensions/size_extensions.dart';
 import 'package:customer/commons/animations/slide_animation.dart';
 import 'package:customer/commons/widgets/app_network_image.dart';
-import 'package:customer/commons/widgets/app_svg_icon.dart';
 import 'package:customer/commons/widgets/custom_app_bar.dart';
 import 'package:customer/core/constants/app_constants.dart';
-import 'package:customer/core/constants/assets_constants.dart';
 import 'package:customer/core/localization/language_label_key.dart';
 import 'package:customer/features/blog/models/blog_model.dart';
 import 'package:customer/features/blog/widgets/blog_meta_info.dart';
@@ -274,7 +273,7 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
       child: FractionallySizedBox(
         widthFactor: 0.3,
         heightFactor: 0.3,
-        child: AppSvgIcon(AssetsConstants.placeholder, fit: BoxFit.contain),
+        child: const PlaceholderLogo(),
       ),
     );
   }

@@ -1,6 +1,5 @@
+import 'package:customer/commons/widgets/placeholder_logo.dart';
 import 'package:customer/commons/widgets/app_network_image.dart';
-import 'package:customer/commons/widgets/app_svg_icon.dart';
-import 'package:customer/core/constants/assets_constants.dart';
 import 'package:customer/core/constants/navigation_service.dart';
 import 'package:customer/core/routes/route_names.dart';
 import 'package:customer/core/theme/app_radius.dart';
@@ -49,10 +48,7 @@ class BlogCard extends StatelessWidget {
                     child: FractionallySizedBox(
                       widthFactor: 0.3,
                       heightFactor: 0.3,
-                      child: AppSvgIcon(
-                        AssetsConstants.placeholder,
-                        fit: BoxFit.contain,
-                      ),
+                      child: const PlaceholderLogo(),
                     ),
                   ),
                   errorWidget: Container(
@@ -61,10 +57,7 @@ class BlogCard extends StatelessWidget {
                     child: FractionallySizedBox(
                       widthFactor: 0.3,
                       heightFactor: 0.3,
-                      child: AppSvgIcon(
-                        AssetsConstants.placeholder,
-                        fit: BoxFit.contain,
-                      ),
+                      child: const PlaceholderLogo(),
                     ),
                   ),
                 ),

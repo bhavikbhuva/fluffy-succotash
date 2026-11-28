@@ -1,3 +1,4 @@
+import 'package:customer/commons/widgets/placeholder_logo.dart';
 import 'package:customer/commons/widgets/app_network_image.dart';
 import 'package:customer/commons/widgets/pickup_store_details.dart';
 import 'package:customer/commons/widgets/loading_widget.dart';
@@ -431,7 +432,7 @@ class OrderTimelineStatusCard extends StatelessWidget {
         child: FractionallySizedBox(
           widthFactor: 0.4,
           heightFactor: 0.4,
-          child: AppSvgIcon(AssetsConstants.placeholder, fit: BoxFit.contain),
+          child: const PlaceholderLogo(),
         ),
       ),
     );

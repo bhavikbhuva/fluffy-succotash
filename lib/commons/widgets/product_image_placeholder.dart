@@ -1,5 +1,4 @@
-import 'package:customer/commons/widgets/app_svg_icon.dart';
-import 'package:customer/core/constants/assets_constants.dart';
+import 'package:customer/commons/widgets/placeholder_logo.dart';
 import 'package:customer/core/theme/app_decorations.dart';
 import 'package:customer/utils/extensions/context_extensions.dart';
 import 'package:flutter/material.dart';
@@ -28,7 +27,7 @@ class ProductImagePlaceholder extends StatelessWidget {
       child: FractionallySizedBox(
         widthFactor: 0.4,
         heightFactor: 0.4,
-        child: AppSvgIcon(AssetsConstants.placeholder, fit: BoxFit.contain),
+        child: const PlaceholderLogo(),
       ),
     );
   }
