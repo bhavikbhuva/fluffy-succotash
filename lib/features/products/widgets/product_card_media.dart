@@ -114,9 +114,13 @@ class ProductCardMedia extends StatelessWidget {
                           itemBuilder: (context, pageIndex) {
                             return Container(
                               color: cardBg,
+                              // PestRaksh: contain, as the website's card
+                              // (object-contain). The service photos are square
+                              // with a ring to their edges; cover cut the ring
+                              // off at the sides of this taller box.
                               child: AppNetworkImage(
                                 url: _imageFor(pageIndex, images),
-                                fit: BoxFit.cover,
+                                fit: BoxFit.contain,
                                 memCacheWidth: memW,
                                 memCacheHeight: memH,
                               ),
@@ -207,7 +211,8 @@ class ProductCardMedia extends StatelessWidget {
               cardPadV,
             ),
             child: AutoSizeText(
-              measurement.isNotEmpty ? measurement : '—',
+              // PestRaksh: blank, not "—", when the package has no attribute.
+              measurement,
               style: context.tt.displayMedium?.copyWith(
                 fontSize: measureFontSize,
                 fontWeight: FontWeight.w700,
