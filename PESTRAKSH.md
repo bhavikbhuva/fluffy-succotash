@@ -64,7 +64,12 @@ README is the vendor's.
   confirmed" and "moved to wallet" show as information (`payment_method/utils/payment_result.dart`).
 - **Phase 9 built, 27 Nov 2026 (`2e076a3`):** the cream home header with the logo; App Links for
   `pestraksh.com/{zone}/product/{slug}` and `/order-detail/{id}` (the website must serve
-  `/.well-known/assetlinks.json`, website commit `53ea624`).
+  `/.well-known/assetlinks.json`, website commit `53ea624`). Phases 8 and 9 pushed 28 Nov (`f834787`); APK
+  `PestRaksh-final.apk`.
+- **Final check, 28 Nov 2026 (`1772bcd`):** the refund choice when cancelling a Razorpay booking; Razorpay's
+  window shows PestRaksh, the booking and the customer; a Razorpay error removes the booking (the window has
+  closed); India time shown whatever the phone's zone. The website's `assetlinks.json` now sits at its repo
+  root (`4740d14`), where its `server.js` serves `/.well-known`.
 - **Owner, in the admin:** Zones → Bangalore → **Quick** only, which hides the Quick / Shop switch in the app.
 - **Texts as on the website** (26 Nov 2026): Refund Policy, Privacy Policy, Book Again, Continue with Google,
   and the My Bookings tabs Upcoming / Past. They are in `assets/languages/en.json` here and in the backend's
