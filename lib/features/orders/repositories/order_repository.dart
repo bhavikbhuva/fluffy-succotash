@@ -57,6 +57,10 @@ class OrderRepository {
   /// quick-commerce orders are cancelled as a whole, so leave it null there.
   /// [from] is `'cancel'` or `'return'`; [reason] becomes `cancellation_reason`
   /// for cancel or `reason` for return.
+  /// PestRaksh: [refundTo] (`'wallet'` or `'original'`) is sent with a cancel
+  /// only, when the customer chose where a paid booking's money goes; the
+  /// answer's row then carries `refund_to` (where it really went) and
+  /// `refund_total`.
   /// Returns the `data` object from the response — the updated order item —
   /// so callers can patch local state instead of refetching.
   Future<Map<String, dynamic>?> updateOrderStatus({
@@ -66,6 +70,7 @@ class OrderRepository {
     String? from,
     String? reason,
     String? addressId,
+    String? refundTo,
   }) async {
     try {
       final packageInfo = await PackageInfo.fromPlatform();
@@ -79,6 +84,9 @@ class OrderRepository {
           ApiParameters.appVersion: packageInfo.version,
           if (from == 'cancel' && reason != null)
             ApiParameters.cancellationReason: reason,
+          // PestRaksh: the refund choice belongs to a cancel only.
+          if (from == 'cancel' && refundTo != null && refundTo.isNotEmpty)
+            ApiParameters.refundTo: refundTo,
           if (from == 'return' && reason != null)
             ApiParameters.returnReason: reason,
           if (from == 'return' && addressId != null)

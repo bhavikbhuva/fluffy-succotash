@@ -37,6 +37,9 @@ class OrderStatusUpdateCubit extends Cubit<OrderStatusUpdateState>
     String? from,
     String? reason,
     String? addressId,
+    // PestRaksh: where a cancelled paid booking's money goes ('wallet' or
+    // 'original'); null when the customer was not asked.
+    String? refundTo,
   }) async {
     emit(OrderStatusUpdating());
     Map<String, dynamic>? result;
@@ -48,6 +51,7 @@ class OrderStatusUpdateCubit extends Cubit<OrderStatusUpdateState>
         from: from,
         reason: reason,
         addressId: addressId,
+        refundTo: refundTo,
       );
       result = data;
       emit(OrderStatusUpdateLoaded(data: data, orderItemId: orderItemId));

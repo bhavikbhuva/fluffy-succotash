@@ -94,6 +94,10 @@ class _AddMoneySheetState extends State<_AddMoneySheet> {
         amount: amount,
         currency: currency,
         userEmail: AuthHiveBox.instance.userEmail,
+        // PestRaksh: name and phone too, so Razorpay's window is filled in
+        // for the customer.
+        userName: AuthHiveBox.instance.userName,
+        userPhone: AuthHiveBox.instance.userMobile,
         isWalletTopUp: true,
         extra: {
           ApiParameters.amount: amountText,

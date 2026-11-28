@@ -895,5 +895,12 @@
   "move_pin_to_home": "You seem far from the city, so the map starts at its centre. Move the pin to the home.",
   "call_us": "Call us",
   "whatsapp_us": "WhatsApp us",
-  "whatsapp_booking_message": "Hi PestRaksh, I have a question about my booking {ref}."
+  "whatsapp_booking_message": "Hi PestRaksh, I have a question about my booking {ref}.",
+  "refund_to_title": "Where should we send your refund?",
+  "refund_wallet_title": "PestRaksh wallet",
+  "refund_wallet_desc": "Instantly. Use it for your next booking.",
+  "refund_original_title": "Original payment method",
+  "refund_original_desc": "Card or UPI, in 5–7 working days.",
+  "refund_done_wallet": "Booking cancelled. {amount} is in your PestRaksh wallet.",
+  "refund_done_original": "Booking cancelled. {amount} will reach your card / UPI in 5–7 working days."
 }

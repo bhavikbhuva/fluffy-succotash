@@ -61,6 +61,9 @@ class ApiParameters {
   static const String cancellationReason = 'cancellation_reason';
   static const String reason = 'reason';
   static const String returnReason = 'return_reason';
+  // PestRaksh: where a cancelled paid booking's money goes, "wallet" or
+  // "original" (the card / UPI paid at Razorpay), as on the website.
+  static const String refundTo = 'refund_to';
 
   // ── Return Requests ───────────────────────────────────────────────────────
   static const String isCompleted = 'is_completed';

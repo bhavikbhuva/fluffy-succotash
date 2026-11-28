@@ -809,6 +809,10 @@ class _CheckoutScreenState extends State<CheckoutScreen>
       amount: remainingAmount,
       currency: cartData.currency ?? '',
       userEmail: AuthHiveBox.instance.userEmail,
+      // PestRaksh: name and phone too, so Razorpay's window is filled in
+      // for the customer.
+      userName: AuthHiveBox.instance.userName,
+      userPhone: AuthHiveBox.instance.userMobile,
       deliveryType: _deliveryTypeCubit.state,
     );
     context.read<PaymentCubit>().initiatePayment(

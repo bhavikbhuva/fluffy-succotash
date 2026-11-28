@@ -5,6 +5,8 @@ import 'package:customer/commons/widgets/app_network_image.dart';
 import 'package:customer/commons/widgets/app_snack_bar.dart';
 import 'package:customer/commons/widgets/app_svg_icon.dart';
 import 'package:customer/commons/widgets/app_text_field.dart';
+import 'package:customer/commons/widgets/app_radio_option_tile.dart';
+import 'package:customer/utils/json_parsers.dart';
 import 'package:customer/commons/widgets/product_image_placeholder.dart';
 import 'package:customer/commons/widgets/tax_breakdown_sheet.dart';
 import 'package:customer/core/constants/app_constants.dart';
@@ -68,6 +70,61 @@ Future<String?> _promptReason(
   return confirmed == true ? controller.text.trim() : null;
 }
 
+/// PestRaksh (27 Nov 2026, as on the website): where the money of a cancelled
+/// paid booking goes. A booking paid online at Razorpay asks: the PestRaksh
+/// wallet at once (the default) or the original payment method, the card /
+/// UPI, in 5–7 working days. The cancel's answer says where it really went
+/// (the server falls back to the wallet if Razorpay refuses).
+abstract final class RefundChoice {
+  static const String wallet = 'wallet';
+  static const String original = 'original';
+
+  /// True when cancelling [order] should ask where the money goes: paid
+  /// online at Razorpay, with a total above 0.
+  static bool offeredFor(OrderData? order) =>
+      order != null &&
+      (order.paymentMethod ?? '').trim().toLowerCase() == 'razorpay' &&
+      (order.finalTotal ?? 0) > 0;
+
+  /// Out of the cancel answers' rows, the one that says where the money
+  /// went: the largest `refund_total` above 0 (each item's cancel answers the
+  /// booking's refund so far), or null when nothing was refunded.
+  static Map<String, dynamic>? refundedRow(
+    Iterable<Map<String, dynamic>?> rows,
+  ) {
+    Map<String, dynamic>? best;
+    for (final row in rows) {
+      if (row == null) continue;
+      final total = parseDouble(row['refund_total']);
+      if (total <= 0) continue;
+      if (best == null || total > parseDouble(best['refund_total'])) {
+        best = row;
+      }
+    }
+    return best;
+  }
+
+  /// The message after a cancel that refunded money ([row] from
+  /// [refundedRow]): where it went, with `{amount}` as the app shows prices.
+  static String doneMessage(
+    Map<String, dynamic> row, {
+    required String? currency,
+    required String Function(String key) translate,
+  }) {
+    final key = row['refund_to'] == original
+        ? LanguageLabelKeys.refundDoneOriginal
+        : LanguageLabelKeys.refundDoneWallet;
+    final symbol = (currency == null || currency.isEmpty) ? '₹' : currency;
+    final amount = parseDouble(row['refund_total']).formatPrice();
+    return translate(key).replaceAll('{amount}', '$symbol$amount');
+  }
+}
+
+/// PestRaksh: what the cancel sheet answers: the reason (possibly empty) and,
+/// only when it asked, where the money goes ([RefundChoice.wallet] or
+/// [RefundChoice.original]).
+typedef CancelSheetResult = ({String reason, String? refundTo});
+
 /// Bottom sheet asking for an optional cancel reason — returns the entered
 /// reason (possibly empty) if confirmed, or null if dismissed.
 Future<String?> showCancelOrderSheet(
@@ -76,8 +133,31 @@ Future<String?> showCancelOrderSheet(
   required String message,
   String? confirmLabel,
   String? hint,
+}) async {
+  // PestRaksh: the same sheet without the refund choice, for the callers that
+  // only want the reason (item cancel and return).
+  final result = await showCancelBookingSheet(
+    context,
+    title: title,
+    message: message,
+    confirmLabel: confirmLabel,
+    hint: hint,
+  );
+  return result?.reason;
+}
+
+/// PestRaksh: the cancel sheet for a whole booking. Given the [order], it also
+/// asks where the money goes when [RefundChoice.offeredFor] it; returns the
+/// reason and that choice if confirmed, or null if dismissed.
+Future<CancelSheetResult?> showCancelBookingSheet(
+  BuildContext context, {
+  required String title,
+  required String message,
+  String? confirmLabel,
+  String? hint,
+  OrderData? order,
 }) {
-  return showAppBottomSheet<String?>(
+  return showAppBottomSheet<CancelSheetResult?>(
     context,
     showDragHandle: false,
     padding: null,
@@ -86,6 +166,7 @@ Future<String?> showCancelOrderSheet(
       message: message,
       confirmLabel: confirmLabel,
       hint: hint,
+      offerRefundChoice: RefundChoice.offeredFor(order),
     ),
   );
 }
@@ -95,11 +176,14 @@ class _CancelOrderSheet extends StatefulWidget {
   final String message;
   final String? confirmLabel;
   final String? hint;
+  // PestRaksh: show "Where should we send your refund?" (paid at Razorpay).
+  final bool offerRefundChoice;
   const _CancelOrderSheet({
     required this.title,
     required this.message,
     this.confirmLabel,
     this.hint,
+    this.offerRefundChoice = false,
   });
 
   @override
@@ -108,6 +192,8 @@ class _CancelOrderSheet extends StatefulWidget {
 
 class _CancelOrderSheetState extends State<_CancelOrderSheet> {
   final _controller = TextEditingController();
+  // PestRaksh: the wallet is the default, as on the website.
+  String _refundTo = RefundChoice.wallet;
 
   @override
   void dispose() {
@@ -170,6 +256,41 @@ class _CancelOrderSheetState extends State<_CancelOrderSheet> {
                 widget.hint ??
                 context.translate(LanguageLabelKeys.enterMessage),
           ),
+          // PestRaksh: a booking paid online chooses where its money goes.
+          if (widget.offerRefundChoice) ...[
+            AppSpacing.h20,
+            AppText(
+              context.translate(LanguageLabelKeys.refundToTitle),
+              style: context.tt.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: context.cs.onSurface,
+              ),
+            ),
+            AppSpacing.h8,
+            RadioGroup<String>(
+              groupValue: _refundTo,
+              onChanged: (value) {
+                if (value != null) setState(() => _refundTo = value);
+              },
+              child: Column(
+                spacing: ThemeConstants.spaceS,
+                children: [
+                  _refundOption(
+                    context,
+                    value: RefundChoice.wallet,
+                    title: LanguageLabelKeys.refundWalletTitle,
+                    subtitle: LanguageLabelKeys.refundWalletDesc,
+                  ),
+                  _refundOption(
+                    context,
+                    value: RefundChoice.original,
+                    title: LanguageLabelKeys.refundOriginalTitle,
+                    subtitle: LanguageLabelKeys.refundOriginalDesc,
+                  ),
+                ],
+              ),
+            ),
+          ],
           AppSpacing.h24,
           Row(
             spacing: ThemeConstants.spaceM,
@@ -188,13 +309,50 @@ class _CancelOrderSheetState extends State<_CancelOrderSheet> {
                       widget.confirmLabel ??
                       context.translate(LanguageLabelKeys.cancelOrder),
                   height: 48,
+                  // PestRaksh: the refund choice goes back only when asked.
                   onPressed: () =>
-                      AppNavigator.pop(context, _controller.text.trim()),
+                      AppNavigator.pop<CancelSheetResult>(context, (
+                        reason: _controller.text.trim(),
+                        refundTo: widget.offerRefundChoice ? _refundTo : null,
+                      )),
                 ),
               ),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  /// PestRaksh: one refund option (title and description), outlined, in
+  /// the primary colour when chosen.
+  Widget _refundOption(
+    BuildContext context, {
+    required String value,
+    required String title,
+    required String subtitle,
+  }) {
+    final selected = _refundTo == value;
+    return Container(
+      decoration: AppDecorations.box(
+        color: selected ? context.cs.primary.withValues(alpha: 0.06) : null,
+        borderRadius: AppRadius.r12,
+        border: Border.all(
+          color: selected ? context.cs.primary : context.cs.outline,
+          width: selected ? 1.5 : 1,
+        ),
+      ),
+      child: AppRadioOptionTile<String>(
+        value: value,
+        selected: selected,
+        title: context.translate(title),
+        subtitle: context.translate(subtitle),
+        showContainerDecoration: false,
+        padding: const EdgeInsetsDirectional.symmetric(
+          horizontal: ThemeConstants.paddingM,
+          vertical: ThemeConstants.paddingS,
+        ),
+        onTap: () => setState(() => _refundTo = value),
       ),
     );
   }

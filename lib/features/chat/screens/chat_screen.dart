@@ -1,3 +1,4 @@
+import 'package:customer/utils/server_time.dart';
 import 'package:customer/core/constants/assets_constants.dart';
 import 'package:customer/commons/widgets/app_svg_icon.dart';
 import 'package:customer/commons/widgets/custom_app_bar.dart';
@@ -59,8 +60,11 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  bool _sameDay(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
+  // PestRaksh: days as India's calendar, like the time the divider prints.
+  bool _sameDay(DateTime a, DateTime b) {
+    final x = toIndiaWallClock(a), y = toIndiaWallClock(b);
+    return x.year == y.year && x.month == y.month && x.day == y.day;
+  }
 
   @override
   Widget build(BuildContext context) {

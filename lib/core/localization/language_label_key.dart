@@ -1009,4 +1009,13 @@ class LanguageLabelKeys {
   static const String callUs = "call_us";
   static const String whatsappUs = "whatsapp_us";
   static const String whatsappBookingMessage = "whatsapp_booking_message";
+
+  // PestRaksh: the refund choice when cancelling a paid booking.
+  static const String refundToTitle = "refund_to_title";
+  static const String refundWalletTitle = "refund_wallet_title";
+  static const String refundWalletDesc = "refund_wallet_desc";
+  static const String refundOriginalTitle = "refund_original_title";
+  static const String refundOriginalDesc = "refund_original_desc";
+  static const String refundDoneWallet = "refund_done_wallet";
+  static const String refundDoneOriginal = "refund_done_original";
 }

@@ -1,3 +1,4 @@
+import 'package:customer/utils/server_time.dart';
 import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:customer/commons/widgets/app_snack_bar.dart';
@@ -536,9 +537,11 @@ class ChatDateDivider extends StatelessWidget {
   const ChatDateDivider({super.key, required this.date});
 
   String _label(BuildContext context) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final msgDay = DateTime(date.year, date.month, date.day);
+    // PestRaksh: "Today" and "Yesterday" by India's calendar, as the times.
+    final now = toIndiaWallClock(DateTime.now());
+    final shown = toIndiaWallClock(date);
+    final today = DateTime.utc(now.year, now.month, now.day);
+    final msgDay = DateTime.utc(shown.year, shown.month, shown.day);
     if (msgDay == today) return context.translate(LanguageLabelKeys.today);
     if (msgDay == today.subtract(const Duration(days: 1))) {
       return context.translate(LanguageLabelKeys.yesterday);

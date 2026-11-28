@@ -92,13 +92,15 @@ void main() {
     });
   });
 
-  test('razorpayErrorDeletesBooking: only when nothing could be paid', () {
+  // PestRaksh: the error comes after the window has closed, so the app can
+  // no longer pay the booking: every Razorpay error deletes it.
+  test('razorpayErrorDeletesBooking: every error, the window is closed', () {
     expect(razorpayErrorDeletesBooking(Razorpay.PAYMENT_CANCELLED), isTrue);
     expect(razorpayErrorDeletesBooking(Razorpay.INVALID_OPTIONS), isTrue);
-    expect(razorpayErrorDeletesBooking(Razorpay.NETWORK_ERROR), isFalse);
-    expect(razorpayErrorDeletesBooking(Razorpay.UNKNOWN_ERROR), isFalse);
-    expect(razorpayErrorDeletesBooking(Razorpay.TLS_ERROR), isFalse);
-    expect(razorpayErrorDeletesBooking(null), isFalse);
+    expect(razorpayErrorDeletesBooking(Razorpay.NETWORK_ERROR), isTrue);
+    expect(razorpayErrorDeletesBooking(Razorpay.UNKNOWN_ERROR), isTrue);
+    expect(razorpayErrorDeletesBooking(Razorpay.TLS_ERROR), isTrue);
+    expect(razorpayErrorDeletesBooking(null), isTrue);
   });
 
   test('isPendingPaymentStatus', () {

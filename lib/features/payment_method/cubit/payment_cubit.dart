@@ -258,9 +258,10 @@ class PaymentCubit extends Cubit<PaymentState> {
     required bool success,
     Map<String, dynamic>? extra,
     bool callApi = true,
-    // PestRaksh: false keeps the booking after a failed payment (Razorpay,
-    // when the customer did not close the window): they can try again, and
-    // the server cancels it if it stays unpaid.
+    // PestRaksh: false keeps the booking after a failed payment, and the
+    // server cancels it if it stays unpaid. Razorpay no longer uses it: its
+    // error comes after the window has closed, so the booking is deleted
+    // (see `razorpayErrorDeletesBooking`).
     bool deleteOrderOnFailure = true,
   }) async {
     _emit(PaymentProcessing());

@@ -36,3 +36,24 @@ DateTime? parseServerTime(String? raw) {
     parsed.millisecond,
   ).subtract(kServerUtcOffset).toLocal();
 }
+
+// PestRaksh: times are shown in India time whatever the phone's zone (APP_PLAN
+// "Times"), as on the website: a customer in Dubai booking for parents in
+// Bengaluru must see "10:00 AM", not 8:30 AM. The two helpers below are for
+// showing times only; compare, sort and count down on the instants that
+// [parseServerTime] returns.
+
+/// True for a bare date such as "2026-11-27" (a booking date): a calendar day,
+/// shown as that day on every phone and never moved to another zone.
+bool isServerDateOnly(String? raw) =>
+    raw != null && _kDateOnly.hasMatch(raw.trim());
+
+/// The India wall-clock time of [instant], for formatting only.
+///
+/// The result's year, month, day, hour and minute are what a clock in India
+/// shows at that instant (UTC + 5:30; India has no daylight saving). It is
+/// flagged UTC only so that no phone zone shifts it again; it is not the same
+/// instant as [instant], so never compare it with [DateTime.now] or another
+/// time.
+DateTime toIndiaWallClock(DateTime instant) =>
+    instant.toUtc().add(kServerUtcOffset);

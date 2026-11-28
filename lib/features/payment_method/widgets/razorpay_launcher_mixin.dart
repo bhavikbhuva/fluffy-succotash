@@ -1,4 +1,6 @@
 import 'package:customer/commons/widgets/app_snack_bar.dart';
+import 'package:customer/core/configs/app_config.dart';
+import 'package:customer/core/local_storage/settings_hive_box.dart';
 import 'package:customer/core/localization/language_label_key.dart';
 import 'package:customer/features/payment_method/cubit/payment_cubit.dart';
 import 'package:customer/features/payment_method/models/payment_args.dart';
@@ -51,9 +53,9 @@ mixin RazorpayLauncherMixin<T extends StatefulWidget> on State<T> {
       txnId: response.error?['metadata']?['payment_id']?.toString() ?? '',
       success: false,
       extra: launcherArgs.extra,
-      // PestRaksh: only closing the window deletes the booking (as on the
-      // website). After a failed payment it stays: a retry, or a payment
-      // that still goes through, must not land on a deleted booking.
+      // PestRaksh: the error comes only after the window has closed, so the
+      // app can no longer pay this booking: delete it, as the website does
+      // when its window closes. See [razorpayErrorDeletesBooking].
       deleteOrderOnFailure: razorpayErrorDeletesBooking(response.code),
     );
   }
@@ -97,14 +99,23 @@ mixin RazorpayLauncherMixin<T extends StatefulWidget> on State<T> {
       'key': key,
       'order_id': razorpayOrderId,
       'amount': (launcherArgs.amount * 100).toInt(),
-      'name': launcherArgs.userName ?? '',
-      'description': launcherArgs.description ?? '',
+      // PestRaksh: the top of Razorpay's window is the business, not the
+      // customer (it was left blank), and the line under it says what is
+      // being paid for, as on the website (services-frontend 6a291a8).
+      'name': AppConfig.appName,
+      'description': _razorpayDescription(),
       'prefill': {
+        // PestRaksh: the customer's own details, so they need not type them.
+        'name': launcherArgs.userName ?? '',
         'contact': launcherArgs.userPhone ?? '',
         'email': launcherArgs.userEmail ?? '',
       },
       'external': {'wallets': []},
     };
+    // PestRaksh: the logo from the admin's settings, shown in the window as
+    // on the website. Left out when there is none.
+    final logo = SettingsHiveBox.instance.getAppSettings()?.webLogo?.trim();
+    if (logo != null && logo.startsWith('http')) options['image'] = logo;
     try {
       razorpay.open(options);
     } catch (e) {
@@ -114,5 +125,21 @@ mixin RazorpayLauncherMixin<T extends StatefulWidget> on State<T> {
         type: SnackBarType.error,
       );
     }
+  }
+
+  /// PestRaksh: "Booking #`id`" for a booking, or the wallet text for a
+  /// wallet top-up (which has no booking).
+  String _razorpayDescription() {
+    if (launcherArgs.isWalletTopUp) {
+      return context.translate(
+        LanguageLabelKeys.addMoneyToWallet,
+        fallback: 'PestRaksh wallet',
+      );
+    }
+    final booking = context.translate(
+      LanguageLabelKeys.booking,
+      fallback: 'Booking',
+    );
+    return '$booking #${launcherArgs.orderId}';
   }
 }

@@ -65,18 +65,21 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   /// responses come back, flipping the order itself to cancelled once every
   /// item is done.
   Future<void> _handleCancelOrder(BuildContext context, OrderData order) async {
-    final reason = await showCancelOrderSheet(
+    // PestRaksh: given the booking, the sheet also asks where a booking paid
+    // online should send its money (wallet or card / UPI).
+    final choice = await showCancelBookingSheet(
       context,
       title: context.translate(LanguageLabelKeys.cancelOrder),
       message: context.translate(LanguageLabelKeys.cancelOrderConfirm),
       confirmLabel: context.translate(LanguageLabelKeys.cancelOrder),
       hint: context.translate(LanguageLabelKeys.enterCancellationReason),
+      order: order,
     );
-    if (reason == null || !context.mounted) return;
+    if (choice == null || !context.mounted) return;
 
     final id = order.id?.toString() ?? '';
     final statusCubit = context.read<OrderStatusUpdateCubit>();
-    await Future.wait([
+    final rows = await Future.wait([
       for (final item in order.items ?? <OrderItems>[])
         if (item.activeStatus != OrderStatus.cancelled)
           statusCubit.updateStatus(
@@ -84,15 +87,28 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             status: '${OrderStatus.cancelled}',
             orderItemId: item.id?.toString(),
             from: 'cancel',
-            reason: reason,
+            reason: choice.reason,
+            refundTo: choice.refundTo,
           ),
     ]);
     if (!context.mounted) return;
 
+    // PestRaksh: when money came back, say where it went (the answer's
+    // refund_to / refund_total), as the website does; otherwise as before.
+    final refunded = RefundChoice.refundedRow(rows);
     AppSnackBar.show(
       context: context,
-      message: context.translate(LanguageLabelKeys.requestSubmitted),
+      message: refunded != null
+          ? RefundChoice.doneMessage(
+              refunded,
+              currency: order.currency,
+              translate: (key) => context.translate(key),
+            )
+          : context.translate(LanguageLabelKeys.requestSubmitted),
       type: SnackBarType.success,
+      duration: refunded != null
+          ? const Duration(seconds: 6)
+          : const Duration(seconds: 3),
     );
   }
 
